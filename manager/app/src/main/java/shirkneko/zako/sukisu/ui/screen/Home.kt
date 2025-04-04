@@ -64,6 +64,8 @@ fun HomeScreen(navigator: DestinationsNavigator) {
     val context = LocalContext.current
     var isSimpleMode by rememberSaveable { mutableStateOf(false) }
     var isHideVersion by rememberSaveable { mutableStateOf(false) }
+    var isHideOtherInfo by rememberSaveable { mutableStateOf(false) }
+    var isHideSusfsStatus by rememberSaveable { mutableStateOf(false) }
 
     // 从 SharedPreferences 加载简洁模式状态
     LaunchedEffect(Unit) {
@@ -74,6 +76,16 @@ fun HomeScreen(navigator: DestinationsNavigator) {
     LaunchedEffect(Unit) {
         isHideVersion = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
             .getBoolean("is_hide_version", false)
+    }
+    // 从 SharedPreferences 加载隐藏模块数量等信息开关状态
+    LaunchedEffect(Unit) {
+        isHideOtherInfo = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+            .getBoolean("is_hide_other_info", false)
+    }
+    // 从 SharedPreferences 加载隐藏 SuSFS 状态开关状态
+    LaunchedEffect(Unit) {
+        isHideSusfsStatus = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+            .getBoolean("is_hide_susfs_status", false)
     }
     val kernelVersion = getKernelVersion()
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
@@ -313,6 +325,12 @@ private fun StatusCard(
                     val isHideVersion = LocalContext.current.getSharedPreferences("settings", Context.MODE_PRIVATE)
                         .getBoolean("is_hide_version", false)
 
+                    val isHideOtherInfo = LocalContext.current.getSharedPreferences("settings", Context.MODE_PRIVATE)
+                        .getBoolean("is_hide_other_info", false)
+
+                    val isHideSusfsStatus = LocalContext.current.getSharedPreferences("settings", Context.MODE_PRIVATE)
+                        .getBoolean("is_hide_susfs_status", false)
+
                     Icon(Icons.Outlined.CheckCircle, stringResource(R.string.home_working))
                     Column(Modifier.padding(start = 20.dp)) {
                         Text(
@@ -326,39 +344,43 @@ private fun StatusCard(
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         }
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            text = stringResource(
-                                R.string.home_superuser_count, getSuperuserCount()
-                            ), style = MaterialTheme.typography.bodyMedium
-                        )
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            text = stringResource(R.string.home_module_count, getModuleCount()),
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        val kpmVersion = getKpmVersion()
-                        if (kpmVersion.isNotEmpty() && !kpmVersion.startsWith("Error")) {
+                        if (!isHideOtherInfo) {
                             Spacer(Modifier.height(4.dp))
                             Text(
-                                text = stringResource(R.string.home_kpm_module, getKpmModuleCount()),
-                                style = MaterialTheme.typography.bodyMedium
+                                text = stringResource(
+                                    R.string.home_superuser_count, getSuperuserCount()
+                                ), style = MaterialTheme.typography.bodyMedium
                             )
-                        }
-                        Spacer(modifier = Modifier.height(4.dp))
-
-                        val suSFS = getSuSFS()
-                        if (lkmMode != true) {
-                            val translatedStatus = when (suSFS) {
-                                "Supported" -> stringResource(R.string.status_supported)
-                                "Not Supported" -> stringResource(R.string.status_not_supported)
-                                else -> stringResource(R.string.status_unknown)
-                            }
-
+                            Spacer(Modifier.height(4.dp))
                             Text(
-                                text = stringResource(R.string.home_susfs, translatedStatus),
+                                text = stringResource(R.string.home_module_count, getModuleCount()),
                                 style = MaterialTheme.typography.bodyMedium
                             )
+                            val kpmVersion = getKpmVersion()
+                            if (kpmVersion.isNotEmpty() && !kpmVersion.startsWith("Error")) {
+                                Spacer(Modifier.height(4.dp))
+                                Text(
+                                    text = stringResource(R.string.home_kpm_module, getKpmModuleCount()),
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
+                        }
+                        if (!isHideSusfsStatus) {
+                            Spacer(modifier = Modifier.height(4.dp))
+
+                            val suSFS = getSuSFS()
+                            if (lkmMode != true) {
+                                val translatedStatus = when (suSFS) {
+                                    "Supported" -> stringResource(R.string.status_supported)
+                                    "Not Supported" -> stringResource(R.string.status_not_supported)
+                                    else -> stringResource(R.string.status_unknown)
+                                }
+    
+                                Text(
+                                    text = stringResource(R.string.home_susfs, translatedStatus),
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }   
                         }
                     }
                 }
@@ -587,9 +609,10 @@ private fun InfoCard() {
                 InfoCardItem(stringResource(R.string.home_kpm_version), displayVersion)
             }
 
+            val isHideSusfsStatus = LocalContext.current.getSharedPreferences("settings", Context.MODE_PRIVATE)
+                .getBoolean("is_hide_susfs_status", false)
 
-
-            if (!isSimpleMode) {
+            if ((!isSimpleMode) && (!isHideSusfsStatus)) {
                 Spacer(modifier = Modifier.height(16.dp))
 
                 val suSFS = getSuSFS()
