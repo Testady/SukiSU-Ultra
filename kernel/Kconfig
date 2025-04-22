@@ -10,7 +10,7 @@ config KERNEL_LZ4KD
       Requires CRYPTO_LZ4KD to be enabled.
 
 config CRYPTO_LZ4KD
-    bool "Enable LZ4KD crypto module"
+    tristate "Enable LZ4KD crypto module"
     default y
     help
       Enable LZ4KD compression algorithm support in the crypto subsystem.
