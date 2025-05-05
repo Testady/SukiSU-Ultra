@@ -20,7 +20,6 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -28,6 +27,7 @@ import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.sukisu.ultra.R
+import com.sukisu.ultra.ui.theme.ThemeConfig
 import com.sukisu.ultra.ui.util.BackgroundTransformation
 import com.sukisu.ultra.ui.util.saveTransformedBackground
 import kotlinx.coroutines.launch
@@ -35,6 +35,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.layout.onSizeChanged
+import java.io.File
 import kotlin.math.max
 
 @Composable
@@ -48,7 +49,6 @@ fun ImageEditorDialog(
     var offsetY by remember { mutableFloatStateOf(0f) }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val density = LocalDensity.current
     var lastScale by remember { mutableFloatStateOf(1f) }
     var lastOffsetX by remember { mutableFloatStateOf(0f) }
     var lastOffsetY by remember { mutableFloatStateOf(0f) }
@@ -89,6 +89,8 @@ fun ImageEditorDialog(
             }
         }
     }
+
+    val errorBackground = stringResource(R.string.error_background_file_missing)
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -139,7 +141,7 @@ fun ImageEditorDialog(
                                         0f
                                     }
                                     updateTransformation(newScale, newOffsetX, newOffsetY)
-                                } catch (e: Exception) {
+                                } catch (_: Exception) {
                                     updateTransformation(lastScale, lastOffsetX, lastOffsetY)
                                 }
                             }
@@ -184,11 +186,24 @@ fun ImageEditorDialog(
                     onClick = {
                         scope.launch {
                             try {
+                                // 检查文件是否存在
+                                val backgroundFile = File(context.filesDir, "custom_background.jpg")
+                                if (!backgroundFile.exists()) {
+                                    ThemeConfig.showError(errorBackground)
+                                    onDismiss()
+                                    return@launch
+                                }
+
                                 val transformation = BackgroundTransformation(scale, offsetX, offsetY)
                                 val savedUri = context.saveTransformedBackground(imageUri, transformation)
-                                savedUri?.let { onConfirm(it) }
+                                if (savedUri != null) {
+                                    onConfirm(savedUri)
+                                } else {
+                                    onDismiss()
+                                }
                             } catch (e: Exception) {
-                                ""
+                                ThemeConfig.showError("Error saving image: ${e.message}")
+                                onDismiss()
                             }
                         }
                     },

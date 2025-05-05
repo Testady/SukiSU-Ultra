@@ -325,4 +325,8 @@
     <string name="background_set_success">Background set successfully</string>
     <string name="background_removed">Removed custom backgrounds</string>
     <string name="root_require_for_install">Requires root privileges</string>
+    <string name="error">Error</string>
+    <string name="ok">OK</string>
+    <string name="error_background_file_missing">Please check that your junk cleaning module is cleaning the specified files</string>
+    <string name="error_save_image_failed">Error saving image: %s</string>
 </resources>

@@ -42,6 +42,7 @@ import java.io.FileOutputStream
 import java.io.InputStream
 import androidx.core.content.edit
 import androidx.core.net.toUri
+import com.sukisu.ultra.ui.component.ErrorDialog
 import com.sukisu.ultra.ui.util.BackgroundTransformation
 import com.sukisu.ultra.ui.util.saveTransformedBackground
 
@@ -57,6 +58,8 @@ object ThemeConfig {
     var needsResetOnThemeChange by mutableStateOf(false)
     var isThemeChanging by mutableStateOf(false)
     var preventBackgroundRefresh by mutableStateOf(false)
+    var showErrorDialog by mutableStateOf(false)
+    var errorMessage by mutableStateOf("")
 
     private var lastDarkModeState: Boolean? = null
     fun detectThemeChange(currentDarkMode: Boolean): Boolean {
@@ -70,6 +73,11 @@ object ThemeConfig {
             backgroundImageLoaded = false
         }
         isThemeChanging = true
+    }
+
+    fun showError(message: String) {
+        errorMessage = message
+        showErrorDialog = true
     }
 }
 
@@ -261,6 +269,12 @@ fun KernelSUTheme(
             ) {
                 content()
             }
+            if (ThemeConfig.showErrorDialog) {
+                ErrorDialog(
+                    message = ThemeConfig.errorMessage,
+                    onDismiss = { ThemeConfig.showErrorDialog = false }
+                )
+            }
         }
     }
 }
@@ -380,9 +394,16 @@ private fun Context.copyImageToInternalStorage(uri: Uri): Uri? {
         }
         backupFile.renameTo(file)
 
+        // 检查文件是否存在
+        if (!file.exists()) {
+            ThemeConfig.showError("请检查你的垃圾清理模块是否清理了指定的文件")
+            return null
+        }
+
         Uri.fromFile(file)
     } catch (e: Exception) {
         Log.e("ImageCopy", "复制图片失败: ${e.message}")
+        ThemeConfig.showError("复制图片失败: ${e.message}")
         null
     }
 }
@@ -397,10 +418,21 @@ fun Context.saveAndApplyCustomBackground(uri: Uri, transformation: BackgroundTra
         copyImageToInternalStorage(uri)
     }
 
+    if (finalUri == null) {
+        return // 如果保存失败，直接返回，不更新配置
+    }
+
+    // 检查文件是否存在
+    val file = File(filesDir, "custom_background.jpg")
+    if (!file.exists()) {
+        ThemeConfig.showError("请检查你的垃圾清理模块是否清理了指定的文件")
+        return
+    }
+
     // 保存到配置文件
     getSharedPreferences("theme_prefs", Context.MODE_PRIVATE)
         .edit {
-            putString("custom_background", finalUri?.toString())
+            putString("custom_background", finalUri.toString())
             // 设置阻止刷新标志为false，允许新设置的背景加载一次
             putBoolean("prevent_background_refresh", false)
         }
@@ -417,6 +449,10 @@ fun Context.saveAndApplyCustomBackground(uri: Uri, transformation: BackgroundTra
  */
 fun Context.saveCustomBackground(uri: Uri?) {
     val newUri = uri?.let { copyImageToInternalStorage(it) }
+
+    if (uri != null && newUri == null) {
+        return // 如果保存失败，直接返回，不更新配置
+    }
 
     // 保存到配置文件
     getSharedPreferences("theme_prefs", Context.MODE_PRIVATE)
@@ -458,6 +494,19 @@ fun Context.loadCustomBackground() {
         Log.d("ThemeSystem", "加载自定义背景: $uriString, 阻止刷新: $preventRefresh")
         ThemeConfig.customBackgroundUri = newUri
         ThemeConfig.backgroundImageLoaded = false
+
+        // 检查文件是否存在
+        if (newUri != null) {
+            val file = File(filesDir, "custom_background.jpg")
+            if (!file.exists()) {
+                ThemeConfig.showError("请检查你的垃圾清理模块是否清理了指定的文件")
+                ThemeConfig.customBackgroundUri = null
+                getSharedPreferences("theme_prefs", Context.MODE_PRIVATE)
+                    .edit {
+                        putString("custom_background", null)
+                    }
+            }
+        }
     }
 }
 

@@ -12,6 +12,7 @@ import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
 import androidx.core.graphics.createBitmap
+import com.sukisu.ultra.ui.theme.ThemeConfig
 
 data class BackgroundTransformation(
     val scale: Float = 1f,
@@ -63,10 +64,6 @@ fun Context.applyTransformationToBitmap(bitmap: Bitmap, transformation: Backgrou
     val safeScale = maxOf(0.1f, transformation.scale)
     matrix.postScale(safeScale, safeScale)
 
-    // 计算中心点
-    val centerX = targetWidth / 2f
-    val centerY = targetHeight / 2f
-
     // 计算偏移量，确保不会出现负最大值的问题
     val widthDiff = (bitmap.width * safeScale - targetWidth)
     val heightDiff = (bitmap.height * safeScale - targetHeight)
@@ -106,9 +103,21 @@ fun Context.saveTransformedBackground(uri: Uri, transformation: BackgroundTransf
         outputStream.flush()
         outputStream.close()
 
-        return Uri.fromFile(file)
+        val finalFile = File(filesDir, "custom_background.jpg")
+        if (finalFile.exists()) {
+            finalFile.delete()
+        }
+        file.renameTo(finalFile)
+
+        if (!finalFile.exists()) {
+            ThemeConfig.showError("Please check that your junk cleaning module is cleaning the specified files")
+            return null
+        }
+
+        return Uri.fromFile(finalFile)
     } catch (e: Exception) {
         Log.e("BackgroundUtils", "Failed to save transformed image: ${e.message}", e)
+        ThemeConfig.showError("Failed to save converted image: ${e.message}")
         return null
     }
 }
