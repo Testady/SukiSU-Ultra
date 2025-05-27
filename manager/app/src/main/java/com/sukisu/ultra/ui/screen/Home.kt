@@ -41,7 +41,9 @@ import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.SettingsSuggest
 import androidx.compose.material.icons.filled.Storage
+import androidx.compose.material.icons.filled.Token
 import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Warning
@@ -350,7 +352,7 @@ private fun TopBar(
     onInstallClick: () -> Unit,
     scrollBehavior: TopAppBarScrollBehavior? = null
 ) {
-    val cardColor = MaterialTheme.colorScheme.surfaceContainer
+    val cardColor = MaterialTheme.colorScheme.surfaceContainerLow
     val cardAlpha = CardConfig.cardAlpha
 
     TopAppBar(
@@ -365,15 +367,6 @@ private fun TopBar(
             scrolledContainerColor = cardColor.copy(alpha = cardAlpha)
         ),
         actions = {
-            if (rootAvailable() || kernelVersion.isGKI()) {
-                IconButton(onClick = onInstallClick) {
-                    Icon(
-                        Icons.Filled.Archive,
-                        contentDescription = stringResource(R.string.install),
-                    )
-                }
-            }
-
             var showDropdown by remember { mutableStateOf(false) }
             KsuIsValid {
                 IconButton(onClick = {
@@ -439,10 +432,6 @@ private fun StatusCard(
         ) {
             when {
                 ksuVersion != null -> {
-                    val safeMode = when {
-                        Natives.isSafeMode -> " [${stringResource(id = R.string.safe_mode)}]"
-                        else -> ""
-                    }
 
                     val workingModeText = when {
                         lkmMode == true -> "LKM"
@@ -492,7 +481,13 @@ private fun StatusCard(
 
                             Spacer(Modifier.width(6.dp))
 
-                            // 机器架构标签
+                            // 机器架构标签或者安全模式标签
+                            val labelText = if (Natives.isSafeMode) {
+                                stringResource(id = R.string.safe_mode)
+                            } else {
+                                Os.uname().machine
+                            }
+
                             Surface(
                                 shape = RoundedCornerShape(4.dp),
                                 color = MaterialTheme.colorScheme.primary,
@@ -504,17 +499,10 @@ private fun StatusCard(
                                     )
                             ) {
                                 Text(
-                                    text = Os.uname().machine,
+                                    text = labelText,
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.onSecondary,
                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                )
-                            }
-                            if (safeMode.isNotEmpty()) {
-                                Text(
-                                    text = safeMode,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                             }
                         }
@@ -878,7 +866,7 @@ private fun InfoCard() {
             InfoCardItem(
                 stringResource(R.string.home_manager_version),
                 "${managerVersion.first} (${managerVersion.second})",
-                icon = Icons.Default.Settings,
+                icon = Icons.Default.SettingsSuggest,
             )
 
             InfoCardItem(
@@ -908,7 +896,7 @@ private fun InfoCard() {
                         InfoCardItem(
                             stringResource(R.string.home_kpm_version),
                             displayVersion,
-                            icon = Icons.Default.Settings
+                            icon = Icons.Default.Archive
                         )
                     }
                 }
