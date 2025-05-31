@@ -50,6 +50,10 @@ import com.sukisu.ultra.ui.viewmodel.SuperUserViewModel
 import com.dergoogler.mmrl.ui.component.LabelItem
 import com.dergoogler.mmrl.ui.component.LabelItemDefaults
 
+/**
+ * @author ShirkNeko
+ * @date 2025/5/31.
+ */
 @OptIn(ExperimentalMaterialApi::class, ExperimentalMaterial3Api::class)
 @Destination<RootGraph>
 @Composable
@@ -68,7 +72,7 @@ fun SuperUserScreen(navigator: DestinationsNavigator) {
     LaunchedEffect(key1 = navigator) {
         viewModel.search = ""
         if (viewModel.appList.isEmpty()) {
-            viewModel.fetchAppList()
+            // viewModel.fetchAppList()
         }
     }
 
