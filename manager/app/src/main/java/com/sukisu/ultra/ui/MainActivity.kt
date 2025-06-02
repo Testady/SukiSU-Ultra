@@ -32,11 +32,13 @@ import com.ramcosta.composedestinations.utils.rememberDestinationsNavigator
 import io.sukisu.ultra.UltraToolInstall
 import com.sukisu.ultra.Natives
 import com.sukisu.ultra.ksuApp
+import com.sukisu.ultra.ui.data.AppData
 import com.sukisu.ultra.ui.screen.BottomBarDestination
 import com.sukisu.ultra.ui.theme.*
 import com.sukisu.ultra.ui.theme.CardConfig.cardAlpha
 import com.sukisu.ultra.ui.util.*
 import androidx.core.content.edit
+import com.sukisu.ultra.ui.data.AppData.DataRefreshManager
 import com.sukisu.ultra.ui.theme.CardConfig.cardElevation
 import com.sukisu.ultra.ui.webui.initPlatform
 import java.util.Locale
@@ -45,9 +47,13 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.lifecycle.lifecycleScope
+import com.sukisu.ultra.ui.data.AppData.getKpmVersionUse
 import com.sukisu.ultra.ui.viewmodel.HomeViewModel
 import com.sukisu.ultra.ui.viewmodel.SuperUserViewModel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
 
 class MainActivity : ComponentActivity() {
     private lateinit var superUserViewModel: SuperUserViewModel
@@ -102,6 +108,7 @@ class MainActivity : ComponentActivity() {
         super.attachBaseContext(context)
     }
 
+    @SuppressLint("RestrictedApi")
     override fun onCreate(savedInstanceState: Bundle?) {
         // 确保应用正确的语言设置
         applyLanguageSetting()
@@ -132,6 +139,9 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             homeViewModel.initializeData()
         }
+
+        // 数据刷新协程
+        startDataRefreshCoroutine()
 
         val prefs = getSharedPreferences("settings", MODE_PRIVATE)
         val isFirstRun = prefs.getBoolean("is_first_run", true)
@@ -170,7 +180,7 @@ class MainActivity : ComponentActivity() {
             contentResolver.unregisterContentObserver(contentObserver)
         }
 
-        val isManager = Natives.becomeManager(ksuApp.packageName)
+        val isManager = AppData.isManager(ksuApp.packageName)
         if (isManager) {
             install()
             UltraToolInstall.tryToInstall()
@@ -192,23 +202,21 @@ class MainActivity : ComponentActivity() {
                     initPlatform()
                 }
 
-                homeViewModel.refreshAllData(this)
-
-                Scaffold(
-                    bottomBar = {
-                        AnimatedVisibility(
-                            visible = showBottomBar,
-                            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-                            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
-                        ) {
-                            BottomBar(navController)
-                        }
-                    },
-                    contentWindowInsets = WindowInsets(0, 0, 0, 0)
-                ) { innerPadding ->
-                    CompositionLocalProvider(
-                        LocalSnackbarHost provides snackBarHostState
-                    ) {
+                CompositionLocalProvider(
+                    LocalSnackbarHost provides snackBarHostState
+                ) {
+                    Scaffold(
+                        bottomBar = {
+                            AnimatedVisibility(
+                                visible = showBottomBar,
+                                enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+                                exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
+                            ) {
+                                BottomBar(navController)
+                            }
+                        },
+                        contentWindowInsets = WindowInsets(0, 0, 0, 0)
+                    ) { innerPadding ->
                         DestinationsNavHost(
                             modifier = Modifier.padding(innerPadding),
                             navGraph = NavGraphs.root as NavHostGraphSpec,
@@ -222,6 +230,16 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                 }
+            }
+        }
+    }
+
+    // 数据刷新协程
+    private fun startDataRefreshCoroutine() {
+        lifecycleScope.launch(Dispatchers.IO) {
+            while (isActive) {
+                DataRefreshManager.refreshData()
+                delay(5000)
             }
         }
     }
@@ -269,6 +287,10 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             homeViewModel.initializeData()
         }
+
+        lifecycleScope.launch {
+            DataRefreshManager.refreshData()
+        }
     }
 
     private val destroyListeners = mutableListOf<() -> Unit>()
@@ -288,14 +310,22 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun BottomBar(navController: NavHostController) {
     val navigator = navController.rememberDestinationsNavigator()
-    val isManager = Natives.becomeManager(ksuApp.packageName)
-    val fullFeatured = isManager && !Natives.requireNewKernel() && rootAvailable()
-    val kpmVersion = getKpmVersion()
+    val isFullFeatured = AppData.isFullFeatured(ksuApp.packageName)
+    val kpmVersion = getKpmVersionUse()
     val cardColor = MaterialTheme.colorScheme.surfaceContainer
+    val context = LocalContext.current
+
+    // 收集计数数据
+    val superuserCount by DataRefreshManager.superuserCount.collectAsState()
+    val moduleCount by DataRefreshManager.moduleCount.collectAsState()
+    val kpmModuleCount by DataRefreshManager.kpmModuleCount.collectAsState()
 
     // 检查是否显示KPM
-    val showKpmInfo = LocalContext.current.getSharedPreferences("settings", Context.MODE_PRIVATE)
+    val showKpmInfo = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
         .getBoolean("show_kpm_info", true)
+
+    val isHideOtherInfo = LocalContext.current.getSharedPreferences("settings", Context.MODE_PRIVATE)
+        .getBoolean("is_hide_other_info", false)
 
     NavigationBar(
         modifier = Modifier.windowInsetsPadding(
@@ -310,7 +340,7 @@ private fun BottomBar(navController: NavHostController) {
         BottomBarDestination.entries.forEach { destination ->
             if (destination == BottomBarDestination.Kpm) {
                 if (kpmVersion.isNotEmpty() && !kpmVersion.startsWith("Error") && showKpmInfo && Natives.version >= Natives.MINIMAL_SUPPORTED_KPM) {
-                    if (!fullFeatured && destination.rootRequired) return@forEach
+                    if (!isFullFeatured && destination.rootRequired) return@forEach
                     val isCurrentDestOnBackStack by navController.isRouteOnBackStackAsState(destination.direction)
                     NavigationBarItem(
                         selected = isCurrentDestOnBackStack,
@@ -327,19 +357,120 @@ private fun BottomBar(navController: NavHostController) {
                             }
                         },
                         icon = {
-                            if (isCurrentDestOnBackStack) {
-                                Icon(destination.iconSelected, stringResource(destination.label))
-                            } else {
-                                Icon(destination.iconNotSelected, stringResource(destination.label))
+                            BadgedBox(
+                                badge = {
+                                    if (kpmModuleCount > 0 && !isHideOtherInfo) {
+                                        Badge(
+                                            containerColor = MaterialTheme.colorScheme.secondary
+                                        ) {
+                                            Text(
+                                                text = kpmModuleCount.toString(),
+                                                style = MaterialTheme.typography.labelSmall
+                                            )
+                                        }
+                                    }
+                                }
+                            ) {
+                                if (isCurrentDestOnBackStack) {
+                                    Icon(destination.iconSelected, stringResource(destination.label))
+                                } else {
+                                    Icon(destination.iconNotSelected, stringResource(destination.label))
+                                }
                             }
                         },
                         label = { Text(stringResource(destination.label),style = MaterialTheme.typography.labelMedium) },
                         alwaysShowLabel = false
                     )
                 }
-            } else {
-                if (!fullFeatured && destination.rootRequired) return@forEach
+            } else if (destination == BottomBarDestination.SuperUser) {
+                if (!isFullFeatured && destination.rootRequired) return@forEach
                 val isCurrentDestOnBackStack by navController.isRouteOnBackStackAsState(destination.direction)
+
+                NavigationBarItem(
+                    selected = isCurrentDestOnBackStack,
+                    onClick = {
+                        if (isCurrentDestOnBackStack) {
+                            navigator.popBackStack(destination.direction, false)
+                        }
+                        navigator.navigate(destination.direction) {
+                            popUpTo(NavGraphs.root) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
+                    icon = {
+                        BadgedBox(
+                            badge = {
+                                if (superuserCount > 0 && !isHideOtherInfo) {
+                                    Badge(
+                                        containerColor = MaterialTheme.colorScheme.secondary
+                                    ) {
+                                        Text(
+                                            text = superuserCount.toString(),
+                                            style = MaterialTheme.typography.labelSmall
+                                        )
+                                    }
+                                }
+                            }
+                        ) {
+                            if (isCurrentDestOnBackStack) {
+                                Icon(destination.iconSelected, stringResource(destination.label))
+                            } else {
+                                Icon(destination.iconNotSelected, stringResource(destination.label))
+                            }
+                        }
+                    },
+                    label = { Text(stringResource(destination.label),style = MaterialTheme.typography.labelMedium) },
+                    alwaysShowLabel = false
+                )
+            } else if (destination == BottomBarDestination.Module) {
+                if (!isFullFeatured && destination.rootRequired) return@forEach
+                val isCurrentDestOnBackStack by navController.isRouteOnBackStackAsState(destination.direction)
+
+                NavigationBarItem(
+                    selected = isCurrentDestOnBackStack,
+                    onClick = {
+                        if (isCurrentDestOnBackStack) {
+                            navigator.popBackStack(destination.direction, false)
+                        }
+                        navigator.navigate(destination.direction) {
+                            popUpTo(NavGraphs.root) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
+                    icon = {
+                        BadgedBox(
+                            badge = {
+                                if (moduleCount > 0 && !isHideOtherInfo) {
+                                    Badge(
+                                        containerColor = MaterialTheme.colorScheme.secondary                              ) {
+                                        Text(
+                                            text = moduleCount.toString(),
+                                            style = MaterialTheme.typography.labelSmall
+                                        )
+                                    }
+                                }
+                            }
+                        ) {
+                            if (isCurrentDestOnBackStack) {
+                                Icon(destination.iconSelected, stringResource(destination.label))
+                            } else {
+                                Icon(destination.iconNotSelected, stringResource(destination.label))
+                            }
+                        }
+                    },
+                    label = { Text(stringResource(destination.label),style = MaterialTheme.typography.labelMedium) },
+                    alwaysShowLabel = false
+                )
+            } else {
+                if (!isFullFeatured && destination.rootRequired) return@forEach
+                val isCurrentDestOnBackStack by navController.isRouteOnBackStackAsState(destination.direction)
+
                 NavigationBarItem(
                     selected = isCurrentDestOnBackStack,
                     onClick = {
