@@ -1,11 +1,9 @@
-package com.sukisu.ultra.ui.screen
+package zako.zako.zako.zakoui.screen
 
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
-import android.content.ComponentName
-import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.net.Uri
 import android.os.Build
@@ -92,6 +90,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.unit.sp
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
+import com.sukisu.ultra.ksuApp
 
 /**
  * @author ShirkNeko
@@ -105,22 +104,6 @@ private val SETTINGS_GROUP_SPACING = 16.dp
  */
 fun saveCardConfig(context: Context) {
     CardConfig.save(context)
-}
-
-/**
- * 切换启动器图标
- */
-fun toggleLauncherIcon(context: Context, useAlt: Boolean) {
-    val pm = context.packageManager
-    val main = ComponentName(context, MainActivity::class.java.name)
-    val alt = ComponentName(context, "${MainActivity::class.java.name}Alias")
-    if (useAlt) {
-        pm.setComponentEnabledSetting(main, PackageManager.COMPONENT_ENABLED_STATE_DISABLED, PackageManager.DONT_KILL_APP)
-        pm.setComponentEnabledSetting(alt, PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP)
-    } else {
-        pm.setComponentEnabledSetting(alt, PackageManager.COMPONENT_ENABLED_STATE_DISABLED, PackageManager.DONT_KILL_APP)
-        pm.setComponentEnabledSetting(main, PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP)
-    }
 }
 
 /**
@@ -238,7 +221,7 @@ fun MoreSettingsScreen(
 
     // 显示KPM开关状态
     var isShowKpmInfo by remember {
-        mutableStateOf(prefs.getBoolean("show_kpm_info", true))
+        mutableStateOf(prefs.getBoolean("show_kpm_info", false))
     }
 
     // 隐藏SuSFS状态开关状态
@@ -406,14 +389,7 @@ fun MoreSettingsScreen(
                 @Suppress("DEPRECATION")
                 context.resources.updateConfiguration(config, context.resources.displayMetrics)
             }
-
-            val intent = Intent(context, MainActivity::class.java)
-            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
-            context.startActivity(intent)
-
-            if (context is Activity) {
-                context.finish()
-            }
+            ksuApp.refreshCurrentActivity()
         }
     }
 
@@ -1087,9 +1063,9 @@ fun MoreSettingsScreen(
                 )
 
                 if (Natives.version >= Natives.MINIMAL_SUPPORTED_KPM) {
-                    // 显示KPM开关
+                    // 隐藏KPM开关
                     SwitchSettingItem(
-                        icon = Icons.Filled.Visibility,
+                        icon = Icons.Filled.VisibilityOff,
                         title = stringResource(R.string.show_kpm_info),
                         summary = stringResource(R.string.show_kpm_info_summary),
                         checked = isShowKpmInfo,
