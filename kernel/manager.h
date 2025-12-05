@@ -25,12 +25,12 @@ static inline bool is_manager(void)
 			(ksu_manager_uid != KSU_INVALID_UID && ksu_manager_uid == current_uid().val));
 }
 #else
-static inline bool is_manager()
+static inline bool is_manager(void)
 {
-	return unlikely((ksu_manager_uid == current_uid().val % 100000) || 
+	return unlikely(ksu_is_any_manager(current_uid().val % 100000) || 
 			(ksu_manager_uid != KSU_INVALID_UID && ksu_manager_uid == current_uid().val % 100000));
 }
-#endif
+#endif // #ifndef CONFIG_KSU_SUSFS
 
 static inline uid_t ksu_get_manager_uid(void)
 {
@@ -45,16 +45,12 @@ static inline void ksu_set_manager_uid(uid_t uid)
 #else
 static inline void ksu_set_manager_uid(uid_t uid)
 {
-	ksu_manager_uid = uid % 100000;
+    ksu_manager_uid = uid % 100000;
 }
-#endif
+#endif // #ifndef CONFIG_KSU_SUSFS
 
 static inline void ksu_invalidate_manager_uid(void)
 {
 	ksu_manager_uid = KSU_INVALID_UID;
 }
-
-int ksu_observer_init(void);
-void ksu_observer_exit(void);
-
 #endif
