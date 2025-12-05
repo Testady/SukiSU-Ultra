@@ -107,6 +107,7 @@ ifeq ($(CONFIG_KSU_SUSFS), y)
 $(info -- KernelSU: SUSFS_INLINE_HOOK)
 ccflags-y += -DCONFIG_KSU_SUSFS
 endif
+endif
 
 KERNEL_VERSION := $(VERSION).$(PATCHLEVEL)
 KERNEL_TYPE := Non-GKI
