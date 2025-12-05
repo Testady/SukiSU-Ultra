@@ -31,6 +31,8 @@
 #include "syscall_handler.h"
 #endif // #ifndef CONFIG_KSU_SUSFS
 
+#include "sulog.h"
+
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 7, 0) && defined(CONFIG_CC_IS_GCC))
 static struct group_info root_groups = {
 	.usage = REFCOUNT_INIT(2),

@@ -869,7 +869,89 @@ static int do_manual_su(void __user *arg)
 }
 #endif
 
-#ifdef CONFIG_KSU_SUSFS
+// IOCTL handlers mapping table
+static const struct ksu_ioctl_cmd_map ksu_ioctl_handlers[] = {
+	KSU_IOCTL(GRANT_ROOT, "GRANT_ROOT", do_grant_root, allowed_for_su),
+	KSU_IOCTL(GET_INFO, "GET_INFO", do_get_info, always_allow),
+	KSU_IOCTL(REPORT_EVENT, "REPORT_EVENT", do_report_event, only_root),
+	KSU_IOCTL(SET_SEPOLICY, "SET_SEPOLICY", do_set_sepolicy, only_root),
+	KSU_IOCTL(CHECK_SAFEMODE, "CHECK_SAFEMODE", do_check_safemode,
+		  always_allow),
+	KSU_IOCTL(GET_ALLOW_LIST, "GET_ALLOW_LIST", do_get_allow_list,
+		  manager_or_root),
+	KSU_IOCTL(GET_DENY_LIST, "GET_DENY_LIST", do_get_deny_list,
+		  manager_or_root),
+	KSU_IOCTL(UID_GRANTED_ROOT, "UID_GRANTED_ROOT", do_uid_granted_root,
+		  manager_or_root),
+	KSU_IOCTL(UID_SHOULD_UMOUNT, "UID_SHOULD_UMOUNT", do_uid_should_umount,
+		  manager_or_root),
+	KSU_IOCTL(GET_MANAGER_UID, "GET_MANAGER_UID", do_get_manager_uid,
+		  manager_or_root),
+	KSU_IOCTL(GET_APP_PROFILE, "GET_APP_PROFILE", do_get_app_profile,
+		  only_manager),
+	KSU_IOCTL(SET_APP_PROFILE, "SET_APP_PROFILE", do_set_app_profile,
+		  only_manager),
+	KSU_IOCTL(GET_FEATURE, "GET_FEATURE", do_get_feature, manager_or_root),
+	KSU_IOCTL(SET_FEATURE, "SET_FEATURE", do_set_feature, manager_or_root),
+	KSU_IOCTL(GET_WRAPPER_FD, "GET_WRAPPER_FD", do_get_wrapper_fd,
+		  manager_or_root),
+	KSU_IOCTL(MANAGE_MARK, "MANAGE_MARK", do_manage_mark, manager_or_root),
+	KSU_IOCTL(NUKE_EXT4_SYSFS, "NUKE_EXT4_SYSFS", do_nuke_ext4_sysfs,
+		  manager_or_root),
+	KSU_IOCTL(ADD_TRY_UMOUNT, "ADD_TRY_UMOUNT", add_try_umount,
+		  manager_or_root),
+	KSU_IOCTL(GET_FULL_VERSION, "GET_FULL_VERSION", do_get_full_version,
+		  always_allow),
+	KSU_IOCTL(HOOK_TYPE, "GET_HOOK_TYPE", do_get_hook_type,
+		  manager_or_root),
+	KSU_IOCTL(ENABLE_KPM, "GET_ENABLE_KPM", do_enable_kpm,
+		  manager_or_root),
+	KSU_IOCTL(DYNAMIC_MANAGER, "SET_DYNAMIC_MANAGER", do_dynamic_manager,
+		  manager_or_root),
+	KSU_IOCTL(GET_MANAGERS, "GET_MANAGERS", do_get_managers,
+		  manager_or_root),
+	KSU_IOCTL(ENABLE_UID_SCANNER, "SET_ENABLE_UID_SCANNER", do_enable_uid_scanner,
+		  manager_or_root),
+#ifdef CONFIG_KSU_MANUAL_SU
+	KSU_IOCTL(MANUAL_SU, "MANUAL_SU", do_manual_su,
+		  system_uid_check),
+#endif
+#ifdef CONFIG_KPM
+	KSU_IOCTL(KPM, "KPM_OPERATION", do_kpm,
+		  manager_or_root),
+#endif
+
+	// Sentinel
+	{ .cmd = 0, .name = NULL, .handler = NULL, .perm_check = NULL }
+};
+
+#ifndef CONFIG_KSU_SUSFS
+int ksu_handle_sys_reboot(int magic1, int magic2, unsigned int cmd,
+			  void __user **arg)
+{
+	if (magic1 != KSU_INSTALL_MAGIC1)
+		return 0;
+
+#ifdef CONFIG_KSU_DEBUG
+	pr_info("sys_reboot: intercepted call! magic: 0x%x id: %d\n", magic1,
+		magic2);
+#endif
+
+	// Check if this is a request to install KSU fd
+	if (magic2 == KSU_INSTALL_MAGIC2) {
+		int fd = ksu_install_fd();
+		// downstream: dereference all arg usage!
+		if (copy_to_user((void __user *)*arg, &fd, sizeof(fd))) {
+			pr_err("install ksu fd reply err\n");
+			do_close_fd(fd);
+		}
+		return 0;
+	}
+
+	return 0;
+}
+
+#else
 int ksu_handle_sys_reboot(int magic1, int magic2, unsigned int cmd, void __user **arg)
 {
     if (magic1 != KSU_INSTALL_MAGIC1) {
@@ -977,87 +1059,6 @@ int ksu_handle_sys_reboot(int magic1, int magic2, unsigned int cmd, void __user 
     return 0;
 }
 #endif // #ifndef CONFIG_KSU_SUSFS
-
-// IOCTL handlers mapping table
-static const struct ksu_ioctl_cmd_map ksu_ioctl_handlers[] = {
-	KSU_IOCTL(GRANT_ROOT, "GRANT_ROOT", do_grant_root, allowed_for_su),
-	KSU_IOCTL(GET_INFO, "GET_INFO", do_get_info, always_allow),
-	KSU_IOCTL(REPORT_EVENT, "REPORT_EVENT", do_report_event, only_root),
-	KSU_IOCTL(SET_SEPOLICY, "SET_SEPOLICY", do_set_sepolicy, only_root),
-	KSU_IOCTL(CHECK_SAFEMODE, "CHECK_SAFEMODE", do_check_safemode,
-		  always_allow),
-	KSU_IOCTL(GET_ALLOW_LIST, "GET_ALLOW_LIST", do_get_allow_list,
-		  manager_or_root),
-	KSU_IOCTL(GET_DENY_LIST, "GET_DENY_LIST", do_get_deny_list,
-		  manager_or_root),
-	KSU_IOCTL(UID_GRANTED_ROOT, "UID_GRANTED_ROOT", do_uid_granted_root,
-		  manager_or_root),
-	KSU_IOCTL(UID_SHOULD_UMOUNT, "UID_SHOULD_UMOUNT", do_uid_should_umount,
-		  manager_or_root),
-	KSU_IOCTL(GET_MANAGER_UID, "GET_MANAGER_UID", do_get_manager_uid,
-		  manager_or_root),
-	KSU_IOCTL(GET_APP_PROFILE, "GET_APP_PROFILE", do_get_app_profile,
-		  only_manager),
-	KSU_IOCTL(SET_APP_PROFILE, "SET_APP_PROFILE", do_set_app_profile,
-		  only_manager),
-	KSU_IOCTL(GET_FEATURE, "GET_FEATURE", do_get_feature, manager_or_root),
-	KSU_IOCTL(SET_FEATURE, "SET_FEATURE", do_set_feature, manager_or_root),
-	KSU_IOCTL(GET_WRAPPER_FD, "GET_WRAPPER_FD", do_get_wrapper_fd,
-		  manager_or_root),
-	KSU_IOCTL(MANAGE_MARK, "MANAGE_MARK", do_manage_mark, manager_or_root),
-	KSU_IOCTL(NUKE_EXT4_SYSFS, "NUKE_EXT4_SYSFS", do_nuke_ext4_sysfs,
-		  manager_or_root),
-	KSU_IOCTL(ADD_TRY_UMOUNT, "ADD_TRY_UMOUNT", add_try_umount,
-		  manager_or_root),
-	KSU_IOCTL(GET_FULL_VERSION, "GET_FULL_VERSION", do_get_full_version,
-		  always_allow),
-	KSU_IOCTL(HOOK_TYPE, "GET_HOOK_TYPE", do_get_hook_type,
-		  manager_or_root),
-	KSU_IOCTL(ENABLE_KPM, "GET_ENABLE_KPM", do_enable_kpm,
-		  manager_or_root),
-	KSU_IOCTL(DYNAMIC_MANAGER, "SET_DYNAMIC_MANAGER", do_dynamic_manager,
-		  manager_or_root),
-	KSU_IOCTL(GET_MANAGERS, "GET_MANAGERS", do_get_managers,
-		  manager_or_root),
-	KSU_IOCTL(ENABLE_UID_SCANNER, "SET_ENABLE_UID_SCANNER", do_enable_uid_scanner,
-		  manager_or_root),
-#ifdef CONFIG_KSU_MANUAL_SU
-	KSU_IOCTL(MANUAL_SU, "MANUAL_SU", do_manual_su,
-		  system_uid_check),
-#endif
-#ifdef CONFIG_KPM
-	KSU_IOCTL(KPM, "KPM_OPERATION", do_kpm,
-		  manager_or_root),
-#endif
-
-	// Sentinel
-	{ .cmd = 0, .name = NULL, .handler = NULL, .perm_check = NULL }
-};
-
-int ksu_handle_sys_reboot(int magic1, int magic2, unsigned int cmd,
-			  void __user **arg)
-{
-	if (magic1 != KSU_INSTALL_MAGIC1)
-		return 0;
-
-#ifdef CONFIG_KSU_DEBUG
-	pr_info("sys_reboot: intercepted call! magic: 0x%x id: %d\n", magic1,
-		magic2);
-#endif
-
-	// Check if this is a request to install KSU fd
-	if (magic2 == KSU_INSTALL_MAGIC2) {
-		int fd = ksu_install_fd();
-		// downstream: dereference all arg usage!
-		if (copy_to_user((void __user *)*arg, &fd, sizeof(fd))) {
-			pr_err("install ksu fd reply err\n");
-			do_close_fd(fd);
-		}
-		return 0;
-	}
-
-	return 0;
-}
 
 void ksu_supercalls_init(void)
 {

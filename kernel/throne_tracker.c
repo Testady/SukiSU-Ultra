@@ -288,7 +288,7 @@ FILLDIR_RETURN_TYPE my_actor(struct dir_context *ctx, const char *name,
 	} else {
 		if ((namelen == 8) &&
 		    (strncmp(name, "base.apk", namelen) == 0)) {
-			struct apk_path_hash *pos;
+			struct apk_path_hash *pos, *n;
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 8, 0)
 			unsigned int hash =
 				full_name_hash(dirpath, strlen(dirpath));

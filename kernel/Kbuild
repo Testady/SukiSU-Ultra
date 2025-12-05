@@ -102,6 +102,7 @@ $(info -- KernelSU: CONFIG_KSU_SYSCALL_HOOK)
 ccflags-y += -DCONFIG_KSU_SYSCALL_HOOK
 endif
 
+ifeq ($(CONFIG_KSU_NONE_HOOK), y)
 ifeq ($(CONFIG_KSU_SUSFS), y)
 $(info -- KernelSU: SUSFS_INLINE_HOOK)
 ccflags-y += -DCONFIG_KSU_SUSFS

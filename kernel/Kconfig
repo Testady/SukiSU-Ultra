@@ -24,8 +24,7 @@ config KSU_ALLOWLIST_WORKAROUND
 
 choice
 	prompt "KernelSU hooks"
-	default KSU_MANUAL_HOOK if !KPROBES
-	default KSU_SYSCALL_HOOK if KPROBES && KRETPROBES && HAVE_SYSCALL_TRACEPOINTS
+	default KSU_NONE_HOOK
 	help
 	  KernelSU core hooks.
 
@@ -42,6 +41,11 @@ config KSU_SYSCALL_HOOK
 	help
 	  Enable KPROBES, KRETPROBES and TRACEPOINT hook for KernelSU core.
 	  This should not be used on kernel below 5.10.
+config KSU_NONE_HOOK
+	bool "KernelSU none hook mode."
+	depends on KSU && KSU != m
+	help
+	  Enable susfs.
 
 endchoice
 
@@ -55,6 +59,13 @@ config KPM
 		Enabling this option will activate the KPM feature of SukiSU.
 		This option is suitable for scenarios where you need to force KPM to be enabled.
 		but it may affect system stability.
+
+config KSU_MANUAL_SU
+    bool "Use manual su"
+    depends on KSU
+    default y
+    help
+      Use manual su and authorize the corresponding command line and application via prctl
 
 menu "KernelSU - SUSFS"
 config KSU_SUSFS

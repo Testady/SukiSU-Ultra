@@ -238,9 +238,7 @@ int __maybe_unused ksu_handle_devpts(struct inode *inode)
 	return 0;
 }
 #else
-static const char sh_path[] = SH_PATH;
 static const char su_path[] = SU_PATH;
-static const char ksud_path[] = KSUD_PATH;
 
 extern bool ksu_kernel_umount_enabled;
 
