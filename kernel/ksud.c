@@ -224,6 +224,7 @@ static inline void handle_second_stage(void)
 	setup_ksu_cred();
 }
 
+#ifdef CONFIG_KSU_MANUAL_HOOK
 // For handling ksud on init
 // TODO: Use it for SYSCALL_HOOK too!
 int __maybe_unused ksu_handle_execveat_init(struct filename *filename)
@@ -238,6 +239,7 @@ int __maybe_unused ksu_handle_execveat_init(struct filename *filename)
 	}
 	return 1;
 }
+#endif
 
 // IMPORTANT NOTE: the call from execve_handler_pre WON'T provided correct value for envp and flags in GKI version
 int ksu_handle_execveat_ksud(int *fd, struct filename **filename_ptr,

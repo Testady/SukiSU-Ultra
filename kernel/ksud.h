@@ -37,6 +37,8 @@ int ksu_handle_execveat_ksud(int *fd, struct filename **filename_ptr,
 			     struct user_arg_ptr *argv,
 			     struct user_arg_ptr *envp, int *flags);
 
+#ifdef CONFIG_KSU_MANUAL_HOOK
 int ksu_handle_execveat_init(struct filename *filename);
+#endif
 
 #endif

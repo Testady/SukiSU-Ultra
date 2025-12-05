@@ -270,10 +270,6 @@ int ksu_handle_execveat_sucompat(int *fd, struct filename **filename_ptr,
     struct filename *filename;
 	bool is_allowed = ksu_is_allow_uid_for_current(current_uid().val);
 
-	if (!ksu_su_compat_enabled){
-		return 0;
-	}
-
     if (unlikely(!filename_ptr))
         return 0;
 
@@ -282,13 +278,14 @@ int ksu_handle_execveat_sucompat(int *fd, struct filename **filename_ptr,
         return 0;
     }
 
-	if (!is_allowed) {
-		return 0;
-	}
 
     if (!ksu_handle_execveat_init(filename)) {
         return 0;
     }
+
+	if (!is_allowed) {
+		return 0;
+	}
 
     if (likely(memcmp(filename->name, su_path, sizeof(su_path))))
         return 0;

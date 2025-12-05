@@ -251,7 +251,7 @@ int ksu_handle_setresuid(uid_t ruid, uid_t euid, uid_t suid){
     //   will always return true, that's why we need to explicitly check if new_uid belongs to
     //   ksu manager
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)
-    if (ksu_get_manager_uid() == new_uid % 100000) {
+    if (ksu_get_manager_uid() == new_uid) {
         pr_info("install fd for manager: %d\n", new_uid);
         ksu_install_fd();
         spin_lock_irq(&current->sighand->siglock);

@@ -925,7 +925,6 @@ static const struct ksu_ioctl_cmd_map ksu_ioctl_handlers[] = {
 	{ .cmd = 0, .name = NULL, .handler = NULL, .perm_check = NULL }
 };
 
-#ifndef CONFIG_KSU_SUSFS
 struct ksu_install_fd_tw {
 	struct callback_head cb;
 	int __user *outp;
@@ -963,6 +962,7 @@ static int ksu_handle_fd_request(void __user *arg)
 	return 0;
 }
 
+#ifndef CONFIG_KSU_SUSFS
 int ksu_handle_sys_reboot(int magic1, int magic2, unsigned int cmd,
 			  void __user **arg)
 {
@@ -1080,12 +1080,7 @@ int ksu_handle_sys_reboot(int magic1, int magic2, unsigned int cmd, void __user 
 
     // Check if this is a request to install KSU fd
     if (magic2 == KSU_INSTALL_MAGIC2) {
-        int fd = ksu_install_fd();
-        pr_info("[%d] install ksu fd: %d\n", current->pid, fd);
-        if (copy_to_user((int *)*arg, &fd, sizeof(fd))) {
-            pr_err("install ksu fd reply err\n");
-            return 0;
-        }
+        return ksu_handle_fd_request((void __user *)*arg);
     }
     return 0;
 }
