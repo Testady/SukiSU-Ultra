@@ -198,7 +198,7 @@ void escape_with_root_profile(void)
 #endif // #ifndef CONFIG_KSU_SUSFS
 }
 
-void __maybe_unused escape_to_root_for_init(void)
+void escape_to_root_for_init(void)
 {
 	setup_selinux(KERNEL_SU_CONTEXT);
 }
