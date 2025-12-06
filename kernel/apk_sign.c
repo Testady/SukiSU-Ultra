@@ -52,7 +52,7 @@ static struct sdesc *init_sdesc(struct crypto_shash *alg)
 }
 
 static int calc_hash(struct crypto_shash *alg, const unsigned char *data,
-		     unsigned int datalen, unsigned char *digest)
+			 unsigned int datalen, unsigned char *digest)
 {
 	struct sdesc *sdesc;
 	int ret;
@@ -69,7 +69,7 @@ static int calc_hash(struct crypto_shash *alg, const unsigned char *data,
 }
 
 static int ksu_sha256(const unsigned char *data, unsigned int datalen,
-		      unsigned char *digest)
+			  unsigned char *digest)
 {
 	struct crypto_shash *alg;
 	char *hash_alg_name = "sha256";
@@ -223,8 +223,8 @@ static bool has_v1_signature_file(struct file *fp)
 	loff_t pos = 0;
 
 	while (ksu_kernel_read_compat(fp, &header,
-				      sizeof(struct zip_entry_header), &pos) ==
-	       sizeof(struct zip_entry_header)) {
+					  sizeof(struct zip_entry_header), &pos) ==
+		   sizeof(struct zip_entry_header)) {
 		if (header.signature != 0x04034b50) {
 			// ZIP magic: 'PK'
 			return false;
@@ -233,12 +233,12 @@ static bool has_v1_signature_file(struct file *fp)
 		if (header.file_name_length == sizeof(MANIFEST) - 1) {
 			char fileName[sizeof(MANIFEST)];
 			ksu_kernel_read_compat(fp, fileName,
-					       header.file_name_length, &pos);
+						   header.file_name_length, &pos);
 			fileName[header.file_name_length] = '\0';
 
 			// Check if the entry matches META-INF/MANIFEST.MF
 			if (strncmp(MANIFEST, fileName, sizeof(MANIFEST) - 1) ==
-			    0) {
+				0) {
 				return true;
 			}
 		} else {
@@ -322,7 +322,7 @@ static __always_inline bool check_v2_signature(char *path, bool check_multi_mana
 		uint32_t id;
 		uint32_t offset;
 		ksu_kernel_read_compat(fp, &size8, 0x8,
-				       &pos); // sequence length
+					   &pos); // sequence length
 		if (size8 == size_of_block) {
 			break;
 		}
@@ -351,7 +351,7 @@ static __always_inline bool check_v2_signature(char *path, bool check_multi_mana
 	if (v2_signing_blocks != 1) {
 #ifdef CONFIG_KSU_DEBUG
 		pr_err("Unexpected v2 signature count: %d\n",
-		       v2_signing_blocks);
+			   v2_signing_blocks);
 #endif
 		v2_signing_valid = false;
 	}
@@ -396,15 +396,15 @@ clean:
 
 #ifdef CONFIG_KSU_DEBUG
 
-int ksu_debug_manager_uid = -1;
+int ksu_debug_manager_appid = -1;
 
 #include "manager.h"
 
 static int set_expected_size(const char *val, const struct kernel_param *kp)
 {
 	int rv = param_set_uint(val, kp);
-	ksu_set_manager_uid(ksu_debug_manager_uid);
-	pr_info("ksu_manager_uid set to %d\n", ksu_debug_manager_uid);
+	ksu_set_manager_appid(ksu_debug_manager_appid);
+	pr_info("ksu_manager_appid set to %d\n", ksu_debug_manager_appid);
 	return rv;
 }
 
@@ -413,8 +413,8 @@ static struct kernel_param_ops expected_size_ops = {
 	.get = param_get_uint,
 };
 
-module_param_cb(ksu_debug_manager_uid, &expected_size_ops,
-		&ksu_debug_manager_uid, S_IRUSR | S_IWUSR);
+module_param_cb(ksu_debug_manager_appid, &expected_size_ops,
+		&ksu_debug_manager_appid, S_IRUSR | S_IWUSR);
 
 #endif
 

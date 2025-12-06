@@ -23,10 +23,10 @@ static int ksu_task_alloc(struct task_struct *task,
 }
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 10, 0) ||                           \
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 10, 0) ||						   \
 	defined(CONFIG_IS_HW_HISI) || defined(CONFIG_KSU_ALLOWLIST_WORKAROUND)
 static int ksu_key_permission(key_ref_t key_ref, const struct cred *cred,
-			      unsigned perm)
+				  unsigned perm)
 {
 	if (init_session_keyring != NULL) {
 		return 0;
@@ -42,7 +42,7 @@ static int ksu_key_permission(key_ref_t key_ref, const struct cred *cred,
 #endif
 
 static int ksu_inode_rename(struct inode *old_inode, struct dentry *old_dentry,
-			    struct inode *new_inode, struct dentry *new_dentry)
+				struct inode *new_inode, struct dentry *new_dentry)
 {
 	// skip kernel threads
 	if (!current->mm) {
@@ -94,7 +94,7 @@ static int ksu_inode_rename(struct inode *old_inode, struct dentry *old_dentry,
 }
 
 static int ksu_task_fix_setuid(struct cred *new, const struct cred *old,
-			       int flags)
+				   int flags)
 {
 	if (!new || !old)
 		return 0;
@@ -109,7 +109,7 @@ static int ksu_task_fix_setuid(struct cred *new, const struct cred *old,
 }
 
 static struct security_hook_list ksu_hooks[] = {
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 10, 0) ||                           \
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 10, 0) ||						   \
 	defined(CONFIG_IS_HW_HISI) || defined(CONFIG_KSU_ALLOWLIST_WORKAROUND)
 	LSM_HOOK_INIT(key_permission, ksu_key_permission),
 #endif

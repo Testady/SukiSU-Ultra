@@ -39,8 +39,8 @@ typedef struct task_security_struct selinux_security_struct;
 typedef struct cred_security_struct selinux_security_struct;
 #endif
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0) &&                           \
-     !defined(KSU_OPTIONAL_SELINUX_CRED))
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0) &&						   \
+	 !defined(KSU_OPTIONAL_SELINUX_CRED))
 static inline selinux_security_struct *selinux_cred(const struct cred *cred)
 {
 	return (selinux_security_struct *)cred->security;
@@ -66,7 +66,7 @@ static inline void __security_release_secctx(struct lsm_context *cp)
 #define __security_release_secctx security_release_secctx
 #endif
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0)) &&                         \
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0)) &&						 \
 	!defined(KSU_COMPAT_HAS_CURRENT_SID)
 /*
  * get the subjective security ID of the current task

@@ -61,11 +61,11 @@ int __init kernelsu_init(void)
 
 #ifdef CONFIG_KSU_DEBUG
 	pr_alert("*************************************************************");
-	pr_alert("**     NOTICE NOTICE NOTICE NOTICE NOTICE NOTICE NOTICE    **");
-	pr_alert("**                                                         **");
-	pr_alert("**         You are running KernelSU in DEBUG mode          **");
-	pr_alert("**                                                         **");
-	pr_alert("**     NOTICE NOTICE NOTICE NOTICE NOTICE NOTICE NOTICE    **");
+	pr_alert("**	 NOTICE NOTICE NOTICE NOTICE NOTICE NOTICE NOTICE	**");
+	pr_alert("**														 **");
+	pr_alert("**		 You are running KernelSU in DEBUG mode		  **");
+	pr_alert("**														 **");
+	pr_alert("**	 NOTICE NOTICE NOTICE NOTICE NOTICE NOTICE NOTICE	**");
 	pr_alert("*************************************************************");
 #endif
 
@@ -94,7 +94,7 @@ int __init kernelsu_init(void)
 	ksu_throne_tracker_init();
 
 #ifdef CONFIG_KSU_SUSFS
-    susfs_init();
+	susfs_init();
 #endif // #ifdef CONFIG_KSU_SUSFS
 
 #ifndef CONFIG_KSU_SUSFS

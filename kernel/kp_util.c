@@ -78,7 +78,7 @@ out_unlock:
 }
 
 bool ksu_retry_filename_access(const char __user **char_usr_ptr, char *dest,
-			       size_t dest_len, bool exit_atomic_ctx)
+				   size_t dest_len, bool exit_atomic_ctx)
 {
 	unsigned long addr;
 	const char __user *fn;
@@ -101,8 +101,8 @@ bool ksu_retry_filename_access(const char __user **char_usr_ptr, char *dest,
 
 	/*
 	 * This is crazy, but we know what we are doing:
-         * Temporarily exit atomic context to handle page faults, then restore it.
-         */
+		 * Temporarily exit atomic context to handle page faults, then restore it.
+		 */
 	if (exit_atomic_ctx) {
 		if (ret < 0 && preempt_count()) {
 #ifdef CONFIG_KSU_DEBUG
@@ -116,7 +116,7 @@ bool ksu_retry_filename_access(const char __user **char_usr_ptr, char *dest,
 
 	if (ret < 0) {
 		pr_err("all fallback were tried. err: %lu\n",
-		       ret);
+			   ret);
 		return false;
 	}
 

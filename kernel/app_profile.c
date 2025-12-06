@@ -94,7 +94,7 @@ void disable_seccomp(struct task_struct *tsk)
 	assert_spin_locked(&tsk->sighand->siglock);
 
 	// disable seccomp
-#if defined(CONFIG_GENERIC_ENTRY) &&                                           \
+#if defined(CONFIG_GENERIC_ENTRY) &&										   \
 	LINUX_VERSION_CODE >= KERNEL_VERSION(5, 11, 0)
 	clear_syscall_work(SECCOMP);
 #else
@@ -108,20 +108,20 @@ void disable_seccomp(struct task_struct *tsk)
 
 	tsk->seccomp.mode = 0;
 	// 5.9+ have filter_count, but optional.
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 7, 0) ||                          \
-     defined(KSU_OPTIONAL_SECCOMP_FILTER_CNT))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 7, 0) ||						  \
+	 defined(KSU_OPTIONAL_SECCOMP_FILTER_CNT))
 	atomic_set(&tsk->seccomp.filter_count, 0);
 #endif
 	// some old kernel backport seccomp_filter_release..
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 9, 0) &&                           \
-     defined(KSU_OPTIONAL_SECCOMP_FILTER_RELEASE))
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 9, 0) &&						   \
+	 defined(KSU_OPTIONAL_SECCOMP_FILTER_RELEASE))
 	seccomp_filter_release(tsk);
 #elif LINUX_VERSION_CODE < KERNEL_VERSION(5, 9, 0)
 	put_seccomp_filter(tsk);
 #endif
 	// never, ever call seccomp_filter_release on 6.10+ (no effect)
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0) &&                          \
-     LINUX_VERSION_CODE < KERNEL_VERSION(6, 10, 0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0) &&						  \
+	 LINUX_VERSION_CODE < KERNEL_VERSION(6, 10, 0))
 	seccomp_filter_release(tsk);
 #endif
 	// finally, we freed the filter to avoid UAF.
@@ -162,7 +162,7 @@ void escape_with_root_profile(void)
 	cred->securebits = 0;
 
 	BUILD_BUG_ON(sizeof(profile->capabilities.effective) !=
-		     sizeof(kernel_cap_t));
+			 sizeof(kernel_cap_t));
 
 	// setup capabilities
 	// we need CAP_DAC_READ_SEARCH becuase `/data/adb/ksud` is not accessible for non root process
@@ -170,11 +170,11 @@ void escape_with_root_profile(void)
 	u64 cap_for_ksud =
 		profile->capabilities.effective | CAP_DAC_READ_SEARCH;
 	memcpy(&cred->cap_effective, &cap_for_ksud,
-	       sizeof(cred->cap_effective));
+		   sizeof(cred->cap_effective));
 	memcpy(&cred->cap_permitted, &profile->capabilities.effective,
-	       sizeof(cred->cap_permitted));
+		   sizeof(cred->cap_permitted));
 	memcpy(&cred->cap_bset, &profile->capabilities.effective,
-	       sizeof(cred->cap_bset));
+		   sizeof(cred->cap_bset));
 
 	setup_groups(profile, cred);
 
