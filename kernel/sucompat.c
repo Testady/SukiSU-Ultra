@@ -203,6 +203,13 @@ int ksu_handle_execveat_init(struct filename *filename)
 			pr_info("hook_manager: escape to root for init executing ksud: %d\n",
 				current->pid);
 			escape_to_root_for_init();
+			return 0;
+		}
+
+		if (strstr(filename->name, "/app_process") != NULL ||
+		    strstr(filename->name, "/adbd") != NULL) {
+			pr_info("hook_manager: allow init exec %s\n", filename->name);
+			return 0;
 		}
 		return 0;
 	}
@@ -266,12 +273,20 @@ extern bool ksu_kernel_umount_enabled;
 int ksu_handle_execveat_init(struct filename *filename) {
 	if (current->pid != 1 && is_init(get_current_cred())) {
 		if (unlikely(strcmp(filename->name, KSUD_PATH) == 0)) {
-			pr_info("hook_manager: escape to root for init executing ksud: %d\n", current->pid);
+			pr_info("hook_manager: escape to root for init executing ksud: %d\n",
+				current->pid);
 			escape_to_root_for_init();
-		} else if (likely(strstr(filename->name, "/app_process") == NULL && strstr(filename->name, "/adbd") == NULL)) {
-			pr_info("hook_manager: unmark %d exec %s\n", current->pid, filename->name);
-			susfs_set_current_proc_umounted();
+			return 0;
 		}
+
+		if (strstr(filename->name, "/app_process") != NULL ||
+		    strstr(filename->name, "/adbd") != NULL) {
+			pr_info("hook_manager: allow init exec %s\n", filename->name);
+			return 0;
+		}
+
+		pr_info("hook_manager: unmark %d exec %s\n", current->pid, filename->name);
+		susfs_set_current_proc_umounted();
 		return 0;
 	}
 	return 1;
