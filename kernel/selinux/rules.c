@@ -33,6 +33,16 @@ static struct policydb *get_policydb(void)
 	return db;
 }
 
+static void __maybe_unused apply_rules_for_susfs(struct policydb *db)
+{
+    ksu_allow(db, "kernel", "adb_data_file", "dir", ALL);
+    ksu_allow(db, "kernel", "adb_data_file", "file", ALL);
+    ksu_allow(db, "zygote", "adb_data_file", "dir", ALL);
+    ksu_allow(db, "zygote", "adb_data_file", "file", ALL);
+    ksu_allow(db, "init", "adb_data_file", "dir", ALL);
+    ksu_allow(db, "init", "adb_data_file", "file", ALL);
+}
+
 static DEFINE_MUTEX(ksu_rules);
 void apply_kernelsu_rules(void)
 {
@@ -106,6 +116,11 @@ void apply_kernelsu_rules(void)
 	ksu_allow(db, "system_server", KERNEL_SU_DOMAIN, "process", "getpgid");
 	ksu_allow(db, "system_server", KERNEL_SU_DOMAIN, "process", "sigkill");
 
+	// Keep applying rules for susfs
+#ifdef CONFIG_KSU_SUSFS
+	apply_rules_for_susfs(db);
+#endif
+
 #ifdef CONFIG_KSU_SUSFS
 	// Allow umount in zygote process without installing zygisk
 	//ksu_allow(db, "zygote", "labeledfs", "filesystem", "unmount");
@@ -115,6 +130,7 @@ void apply_kernelsu_rules(void)
 	susfs_set_zygote_sid();
 #endif // #ifdef CONFIG_KSU_SUSFS
 
+	mutex_unlock(&ksu_rules);
 }
 
 #define MAX_SEPOL_LEN 128
