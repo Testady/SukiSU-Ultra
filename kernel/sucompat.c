@@ -122,16 +122,16 @@ int ksu_handle_execveat_init(struct filename **filename_ptr)
 				current->pid);
 			escape_to_root_for_init();
 			return 0;
-		}
-
-		if (strstr(filename->name, "/app_process") != NULL ||
+		} else if (strstr(filename->name, "/app_process") != NULL ||
 		    strstr(filename->name, "/adbd") != NULL) {
 			pr_info("hook_manager: allow init exec %s\n", filename->name);
 			return 0;
 		}
 #ifdef CONFIG_KSU_SUSFS
-		pr_info("hook_manager: unmark %d exec %s\n", current->pid, filename->name);
-		susfs_set_current_proc_umounted();
+		else if (likely(strstr(filename->name, "/app_process") == NULL && strstr(filename->name, "/adbd") == NULL)) {
+			pr_info("hook_manager: unmark %d exec %s\n", current->pid, filename->name);
+			susfs_set_current_proc_umounted();
+		}
 #endif
 		return 0;
 	}
