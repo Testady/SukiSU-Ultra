@@ -109,6 +109,12 @@ static inline bool is_allow_su(void)
 #define __force_sig(sig) force_sig(sig, current)
 #endif
 
+static void ksu_install_manager_fd_tw_func(struct callback_head *cb)
+{
+    ksu_install_fd();
+    kfree(cb);
+}
+
 extern void disable_seccomp(struct task_struct *tsk);
 #ifndef CONFIG_KSU_SUSFS
 int ksu_handle_setuid_common(uid_t new_uid, uid_t old_uid, uid_t new_euid,
@@ -149,14 +155,22 @@ int ksu_handle_setuid_common(uid_t new_uid, uid_t old_uid, uid_t new_euid,
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)
 	if (ksu_get_manager_appid() == new_uid) {
-		pr_info("install fd for ksu manager(uid=%d)\n", new_uid);
-		ksu_install_fd();
 		spin_lock_irq(&current->sighand->siglock);
 		ksu_seccomp_allow_cache(current->seccomp.filter, __NR_reboot);
 #ifdef CONFIG_KSU_SYSCALL_HOOK
 		ksu_set_task_tracepoint_flag(current);
 #endif
 		spin_unlock_irq(&current->sighand->siglock);
+
+        pr_info("install fd for manager: %d\n", new_uid);
+        struct callback_head *cb = kzalloc(sizeof(*cb), GFP_ATOMIC);
+        if (!cb)
+            return 0;
+        cb->func = ksu_install_manager_fd_tw_func;
+        if (task_work_add(current, cb, TWA_RESUME)) {
+            kfree(cb);
+            pr_warn("install manager fd add task_work failed\n");
+        }
 		return 0;
 	}
 
@@ -249,11 +263,19 @@ int ksu_handle_setresuid(uid_t ruid, uid_t euid, uid_t suid){
 	//   ksu manager
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)
 	if (ksu_get_manager_appid() == new_uid % PER_USER_RANGE) {
-		pr_info("install fd for manager: %d\n", new_uid);
-		ksu_install_fd();
 		spin_lock_irq(&current->sighand->siglock);
 		ksu_seccomp_allow_cache(current->seccomp.filter, __NR_reboot);
 		spin_unlock_irq(&current->sighand->siglock);
+
+        pr_info("install fd for manager: %d\n", new_uid);
+        struct callback_head *cb = kzalloc(sizeof(*cb), GFP_ATOMIC);
+        if (!cb)
+            return 0;
+        cb->func = ksu_install_manager_fd_tw_func;
+        if (task_work_add(current, cb, TWA_RESUME)) {
+            kfree(cb);
+            pr_warn("install manager fd add task_work failed\n");
+        }
 		return 0;
 	}
 
