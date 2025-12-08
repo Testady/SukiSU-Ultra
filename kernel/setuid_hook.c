@@ -297,6 +297,10 @@ int ksu_handle_setresuid(uid_t ruid, uid_t euid, uid_t suid){
 
 	return 0;
 
+#if __SULOG_GATE
+	ksu_sulog_report_syscall(new_uid, NULL, "setuid", NULL);
+#endif
+
 do_umount:
 	// Handle kernel umount
 	ksu_handle_umount(old_uid, new_uid);

@@ -280,8 +280,6 @@ int __maybe_unused ksu_handle_devpts(struct inode *inode)
 #else
 static const char su_path[] = SU_PATH;
 
-extern bool ksu_kernel_umount_enabled;
-
 // the call from execve_handler_pre won't provided correct value for __never_use_argument, use them after fix execve_handler_pre, keeping them for consistence for manually patched code
 int ksu_handle_execveat_sucompat(int *fd, struct filename **filename_ptr,
 				 void *__never_use_argv, void *__never_use_envp,
@@ -299,6 +297,10 @@ int ksu_handle_execveat_sucompat(int *fd, struct filename **filename_ptr,
 	}
 
 	if (!is_allowed) {
+		return 0;
+	}
+
+	if (!ksu_su_compat_enabled) {
 		return 0;
 	}
 
@@ -336,6 +338,10 @@ int ksu_handle_faccessat(int *dfd, const char __user **filename_user, int *mode,
 {
 	char path[sizeof(su_path) + 1] = {0};
 
+	if (!ksu_su_compat_enabled) {
+		return 0;
+	}
+		
 	ksu_strncpy_from_user_nofault(path, *filename_user, sizeof(path));
 
 	if (unlikely(!memcmp(path, su_path, sizeof(su_path)))) {
@@ -355,6 +361,10 @@ int ksu_handle_stat(int *dfd, struct filename **filename, int *flags) {
 		return 0;
 	}
 
+	if (!ksu_su_compat_enabled) {
+		return 0;
+	}
+
 	if (likely(memcmp((*filename)->name, su_path, sizeof(su_path)))) {
 		return 0;
 	}
@@ -370,6 +380,10 @@ int ksu_handle_stat(int *dfd, struct filename **filename, int *flags) {
 int ksu_handle_stat(int *dfd, const char __user **filename_user, int *flags)
 {
 	if (unlikely(!filename_user)) {
+		return 0;
+	}
+
+	if (!ksu_su_compat_enabled) {
 		return 0;
 	}
 
@@ -392,6 +406,10 @@ int ksu_handle_stat(int *dfd, const char __user **filename_user, int *flags)
 int ksu_handle_devpts(struct inode *inode)
 {
 	if (!current->mm) {
+		return 0;
+	}
+
+	if (!ksu_su_compat_enabled) {
 		return 0;
 	}
 

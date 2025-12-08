@@ -20,7 +20,7 @@
 #ifdef CONFIG_KSU_SYSCALL_HOOK
 #include "syscall_handler.h"
 #endif // #ifndef CONFIG_KSU_SUSFS
-#ifdef CONFIG_KSU_MANUAL_HOOK
+#if defined(CONFIG_KSU_MANUAL_HOOK) || defined(CONFIG_KSU_SUSFS)
 #include "setuid_hook.h"
 #include "sucompat.h"
 #endif
@@ -30,9 +30,7 @@
 
 struct cred* ksu_cred;
 
-#ifdef CONFIG_KSU_MANUAL_HOOK
 extern void __init ksu_lsm_hook_init(void);
-#endif
 
 #include "sulog.h"
 #include "throne_comm.h"
@@ -82,9 +80,11 @@ int __init kernelsu_init(void)
 
 #ifdef CONFIG_KSU_SYSCALL_HOOK
 	ksu_syscall_hook_manager_init();
-#endif // #ifndef CONFIG_KSU_SUSFS
-#ifdef CONFIG_KSU_MANUAL_HOOK
+#endif
+
 	ksu_lsm_hook_init();
+
+#if defined(CONFIG_KSU_MANUAL_HOOK) || defined(CONFIG_KSU_SUSFS)
 	ksu_setuid_hook_init();
 	ksu_sucompat_init();
 #endif
@@ -128,7 +128,7 @@ void kernelsu_exit(void)
 #ifdef CONFIG_KSU_SYSCALL_HOOK
 	ksu_syscall_hook_manager_exit();
 #endif
-#ifdef CONFIG_KSU_MANUAL_HOOK
+#if defined(CONFIG_KSU_MANUAL_HOOK) || defined(CONFIG_KSU_SUSFS)
 	ksu_sucompat_exit();
 	ksu_setuid_hook_exit();
 #endif
