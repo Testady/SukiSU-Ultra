@@ -33,7 +33,7 @@
 #include "kernel_compat.h"
 #include "klog.h" // IWYU pragma: keep
 #include "ksud.h"
-#if defined(CONFIG_KSU_SYSCALL_HOOK) || defined(CONFIG_KSU_SUSFS)
+#ifdef CONFIG_KSU_SYSCALL_HOOK
 #include "kp_hook.h"
 extern int ksu_observer_init(void);
 #endif
@@ -96,7 +96,7 @@ void on_post_fs_data(void)
 	already_post_fs_data = true;
 	pr_info("on_post_fs_data!\n");
 	ksu_load_allow_list();
-#if defined(CONFIG_KSU_SYSCALL_HOOK) || defined(CONFIG_KSU_SUSFS)
+#ifdef CONFIG_KSU_SYSCALL_HOOK
 	ksu_observer_init();
 #endif
 	stop_input_hook();
