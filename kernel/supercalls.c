@@ -530,6 +530,7 @@ static int do_manage_mark(void __user *arg)
 		break;
 #else
 		pr_info("susfs: cmd: KSU_MARK_REFRESH: do nothing\n");
+		break;
 #endif // #ifndef CONFIG_KSU_SUSFS
 	}
 	default: {
