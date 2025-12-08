@@ -109,7 +109,6 @@ static inline bool __is_su_allowed(const void *ptr_to_check)
 
 int ksu_handle_execveat_init(struct filename **filename_ptr)
 {
-#if defined(CONFIG_KSU_MANUAL_HOOK) || defined(CONFIG_KSU_SUSFS)
 	struct filename *filename;
 	filename = *filename_ptr;
 	if (IS_ERR(filename)) {
@@ -121,11 +120,6 @@ int ksu_handle_execveat_init(struct filename **filename_ptr)
 			pr_info("hook_manager: escape to root for init executing ksud: %d\n",
 				current->pid);
 			escape_to_root_for_init();
-			return 0;
-		} else if (strstr(filename->name, "/app_process") != NULL ||
-		    strstr(filename->name, "/adbd") != NULL) {
-			pr_info("hook_manager: allow init exec %s\n", filename->name);
-			return 0;
 		}
 #ifdef CONFIG_KSU_SUSFS
 		else if (likely(strstr(filename->name, "/app_process") == NULL && strstr(filename->name, "/adbd") == NULL)) {
@@ -135,7 +129,6 @@ int ksu_handle_execveat_init(struct filename **filename_ptr)
 #endif
 		return 0;
 	}
-#endif
 	return 1;
 }
 
@@ -262,8 +255,8 @@ int ksu_handle_execveat(int *fd, struct filename **filename_ptr, void *argv,
 			void *envp, int *flags)
 {
 	if (!ksu_handle_execveat_init(filename_ptr)) {
-        return 0;
-    }
+		return 0;
+	}
 
 	if (ksu_handle_execveat_ksud(fd, filename_ptr, argv, envp, flags)) {
 		return 0;
@@ -323,8 +316,8 @@ int ksu_handle_execveat(int *fd, struct filename **filename_ptr, void *argv,
 			void *envp, int *flags)
 {
 	if (!ksu_handle_execveat_init(filename_ptr)) {
-        return 0;
-    }
+		return 0;
+	}
 
 	if (ksu_handle_execveat_ksud(fd, filename_ptr, argv, envp, flags)) {
 		return 0;

@@ -154,7 +154,7 @@ int ksu_handle_setuid_common(uid_t new_uid, uid_t old_uid, uid_t new_euid,
 	}
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)
-	if (ksu_get_manager_appid() == new_uid) {
+	if (ksu_get_manager_appid() == new_uid % PER_USER_RANGE) {
 		spin_lock_irq(&current->sighand->siglock);
 		ksu_seccomp_allow_cache(current->seccomp.filter, __NR_reboot);
 #ifdef CONFIG_KSU_SYSCALL_HOOK
@@ -189,12 +189,20 @@ int ksu_handle_setuid_common(uid_t new_uid, uid_t old_uid, uid_t new_euid,
 #endif
 	}
 #else
-	if (ksu_get_manager_appid() == new_uid) {
-		pr_info("install fd for ksu manager(uid=%d)\n", new_uid);
-		ksu_install_fd();
+	if (ksu_get_manager_appid() == new_uid % PER_USER_RANGE) {
 		spin_lock_irq(&current->sighand->siglock);
 		disable_seccomp(current);
 		spin_unlock_irq(&current->sighand->siglock);
+        pr_info("install fd for manager: %d\n", new_uid);
+
+        struct callback_head *cb = kzalloc(sizeof(*cb), GFP_ATOMIC);
+        if (!cb)
+            return 0;
+        cb->func = ksu_install_manager_fd_tw_func;
+        if (task_work_add(current, cb, TWA_RESUME)) {
+            kfree(cb);
+            pr_warn("install manager fd add task_work failed\n");
+        }
 		return 0;
 	}
 
@@ -246,6 +254,13 @@ int ksu_handle_setresuid(uid_t ruid, uid_t euid, uid_t suid){
 		}
 		return 0;
 	}
+
+    // if on private space, see if its possibly the manager
+	if (new_uid > PER_USER_RANGE &&
+		new_uid % PER_USER_RANGE == ksu_get_manager_appid()) {
+		ksu_set_manager_appid(new_uid);
+	}
+    
 	// We only interest in process spwaned by zygote
 	if (!susfs_is_sid_equal(current_cred()->security, susfs_zygote_sid)) {
 		return 0;
@@ -293,12 +308,20 @@ int ksu_handle_setresuid(uid_t ruid, uid_t euid, uid_t suid){
 		}
 	}
 #else
-	if (ksu_get_manager_appid() == new_uid % PER_USER_RANGE)) {
-		pr_info("install fd for ksu manager(uid=%d)\n", new_uid);
-		ksu_install_fd();
+	if (ksu_get_manager_appid() == new_uid % PER_USER_RANGE) {
 		spin_lock_irq(&current->sighand->siglock);
 		disable_seccomp(current);
 		spin_unlock_irq(&current->sighand->siglock);
+
+        pr_info("install fd for manager: %d\n", new_uid);
+        struct callback_head *cb = kzalloc(sizeof(*cb), GFP_ATOMIC);
+        if (!cb)
+            return 0;
+        cb->func = ksu_install_manager_fd_tw_func;
+        if (task_work_add(current, cb, TWA_RESUME)) {
+            kfree(cb);
+            pr_warn("install manager fd add task_work failed\n");
+        }
 		return 0;
 	}
 
