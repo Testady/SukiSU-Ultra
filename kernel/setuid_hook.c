@@ -41,7 +41,7 @@
 #include "selinux/selinux.h"
 #include "seccomp_cache.h"
 #include "supercalls.h"
-#if defined(CONFIG_KSU_SYSCALL_HOOK) && !defined(CONFIG_KSU_SUSFS)
+#ifdef CONFIG_KSU_SYSCALL_HOOK
 #include "syscall_handler.h"
 #endif
 #include "kernel_umount.h"

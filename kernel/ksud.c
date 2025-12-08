@@ -612,7 +612,7 @@ int __maybe_unused ksu_handle_compat_execve_ksud(
 
 static void stop_vfs_read_hook(void)
 {
-#if defined(CONFIG_KSU_SYSCALL_HOOK) && !defined(CONFIG_KSU_SUSFS)
+#ifdef CONFIG_KSU_SYSCALL_HOOK
 	kp_handle_ksud_stop(VFS_READ_HOOK_KP);
 #else
 	ksu_vfs_read_hook = false;
@@ -622,7 +622,7 @@ static void stop_vfs_read_hook(void)
 
 static void stop_execve_hook(void)
 {
-#if defined(CONFIG_KSU_SYSCALL_HOOK) && !defined(CONFIG_KSU_SUSFS)
+#ifdef CONFIG_KSU_SYSCALL_HOOK
 	kp_handle_ksud_stop(EXECVE_HOOK_KP);
 #else
 	ksu_execveat_hook = false;
@@ -632,7 +632,7 @@ static void stop_execve_hook(void)
 
 static void stop_input_hook(void)
 {
-#if defined(CONFIG_KSU_SYSCALL_HOOK) && !defined(CONFIG_KSU_SUSFS)
+#ifdef CONFIG_KSU_SYSCALL_HOOK
 	kp_handle_ksud_stop(INPUT_EVENT_HOOK_KP);
 #else
 	if (!ksu_input_hook) {
@@ -646,14 +646,14 @@ static void stop_input_hook(void)
 // ksud: module support
 void ksu_ksud_init(void)
 {
-#if defined(CONFIG_KSU_SYSCALL_HOOK) && !defined(CONFIG_KSU_SUSFS)
+#ifdef CONFIG_KSU_SYSCALL_HOOK
 	kp_handle_ksud_init();
 #endif // #ifndef CONFIG_KSU_SUSFS
 }
 
 void ksu_ksud_exit(void)
 {
-#if defined(CONFIG_KSU_SYSCALL_HOOK) && !defined(CONFIG_KSU_SUSFS)
+#ifdef CONFIG_KSU_SYSCALL_HOOK
 	kp_handle_ksud_exit();
 #endif // #ifndef CONFIG_KSU_SUSFS
 	is_boot_phase = false;

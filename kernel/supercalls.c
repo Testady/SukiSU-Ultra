@@ -28,7 +28,7 @@
 #include "klog.h" // IWYU pragma: keep
 #include "ksu.h"
 #include "ksud.h"
-#if defined(CONFIG_KSU_SYSCALL_HOOK) && !defined(CONFIG_KSU_SUSFS)
+#ifdef CONFIG_KSU_SYSCALL_HOOK
 #include "kp_hook.h"
 #include "syscall_handler.h"
 #endif
@@ -459,9 +459,11 @@ put_orig_file:
 
 static int do_manage_mark(void __user *arg)
 {
-#ifdef CONFIG_KSU_SYSCALL_HOOK
+#if defined(CONFIG_KSU_SYSCALL_HOOK) || defined(CONFIG_KSU_SUSFS)
 	struct ksu_manage_mark_cmd cmd;
+#ifndef CONFIG_KSU_SUSFS
 	int ret = 0;
+#endif
 
 	if (copy_from_user(&cmd, arg, sizeof(cmd))) {
 		pr_err("manage_mark: copy_from_user failed\n");
@@ -470,6 +472,7 @@ static int do_manage_mark(void __user *arg)
 
 	switch (cmd.operation) {
 	case KSU_MARK_GET: {
+#ifndef CONFIG_KSU_SUSFS
 		// Get task mark status
 		ret = ksu_get_task_mark(cmd.pid);
 		if (ret < 0) {
@@ -479,8 +482,13 @@ static int do_manage_mark(void __user *arg)
 		}
 		cmd.result = (u32)ret;
 		break;
+#else
+        cmd.result = 0;
+        break;
+#endif // #ifndef CONFIG_KSU_SUSFS
 	}
 	case KSU_MARK_MARK: {
+#ifndef CONFIG_KSU_SUSFS
 		if (cmd.pid == 0) {
 			ksu_mark_all_process();
 		} else {
@@ -492,8 +500,13 @@ static int do_manage_mark(void __user *arg)
 			}
 		}
 		break;
+#else
+        cmd.result = 0;
+        break;
+#endif // #ifndef CONFIG_KSU_SUSFS
 	}
 	case KSU_MARK_UNMARK: {
+#ifndef CONFIG_KSU_SUSFS
 		if (cmd.pid == 0) {
 			ksu_unmark_all_process();
 		} else {
@@ -505,11 +518,19 @@ static int do_manage_mark(void __user *arg)
 			}
 		}
 		break;
+#else
+        cmd.result = 0;
+        break;
+#endif // #ifndef CONFIG_KSU_SUSFS
 	}
 	case KSU_MARK_REFRESH: {
+#ifndef CONFIG_KSU_SUSFS
 		ksu_mark_running_process();
 		pr_info("manage_mark: refreshed running processes\n");
 		break;
+#else
+		pr_info("susfs: cmd: KSU_MARK_REFRESH: do nothing\n");
+#endif // #ifndef CONFIG_KSU_SUSFS
 	}
 	default: {
 		pr_err("manage_mark: invalid operation %u\n", cmd.operation);

@@ -27,7 +27,7 @@
 #include "kernel_compat.h"
 #include "klog.h" // IWYU pragma: keep
 #include "selinux/selinux.h"
-#if defined(CONFIG_KSU_SYSCALL_HOOK) && !defined(CONFIG_KSU_SUSFS)
+#ifdef CONFIG_KSU_SYSCALL_HOOK
 #include "syscall_handler.h"
 #endif // #ifndef CONFIG_KSU_SUSFS
 
@@ -132,7 +132,7 @@ void disable_seccomp(struct task_struct *tsk)
 void escape_with_root_profile(void)
 {
 	struct cred *cred;
-#if defined(CONFIG_KSU_SYSCALL_HOOK) && !defined(CONFIG_KSU_SUSFS)
+#ifdef CONFIG_KSU_SYSCALL_HOOK
 	struct task_struct *p, *t;
 	p = current;
 #endif // #ifndef CONFIG_KSU_SUSFS
@@ -191,7 +191,7 @@ void escape_with_root_profile(void)
 	ksu_sulog_report_su_grant(current_euid().val, NULL, "escape_to_root");
 #endif
 
-#if defined(CONFIG_KSU_SYSCALL_HOOK) && !defined(CONFIG_KSU_SUSFS)
+#ifdef CONFIG_KSU_SYSCALL_HOOK
 	for_each_thread (p, t) {
 		ksu_set_task_tracepoint_flag(t);
 	}
@@ -243,7 +243,7 @@ void escape_to_root_for_cmd_su(uid_t target_uid, pid_t target_pid)
 	struct cred *newcreds;
 	struct task_struct *target_task;
 	unsigned long flags;
-#if defined(CONFIG_KSU_SYSCALL_HOOK) && !defined(CONFIG_KSU_SUSFS)
+#ifdef CONFIG_KSU_SYSCALL_HOOK
 	struct task_struct *p = current;
 	struct task_struct *t;
 #endif // #ifndef CONFIG_KSU_SUSFS
@@ -328,7 +328,7 @@ void escape_to_root_for_cmd_su(uid_t target_uid, pid_t target_pid)
 #if __SULOG_GATE
 	ksu_sulog_report_su_grant(target_uid, "cmd_su", "manual_escalation");
 #endif
-#if defined(CONFIG_KSU_SYSCALL_HOOK) && !defined(CONFIG_KSU_SUSFS)
+#ifdef CONFIG_KSU_SYSCALL_HOOK
 	for_each_thread (p, t) {
 		ksu_set_task_tracepoint_flag(t);
 	}

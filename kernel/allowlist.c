@@ -25,7 +25,7 @@
 #include "allowlist.h"
 #include "manager.h"
 #include "kernel_compat.h"
-#if defined(CONFIG_KSU_SYSCALL_HOOK) && !defined(CONFIG_KSU_SUSFS)
+#ifdef CONFIG_KSU_SYSCALL_HOOK
 #include "syscall_handler.h"
 #endif
 
@@ -269,7 +269,7 @@ out:
 
 	if (persist) {
 		persistent_allow_list();
-#if defined(CONFIG_KSU_SYSCALL_HOOK) && !defined(CONFIG_KSU_SUSFS)
+#ifdef CONFIG_KSU_SYSCALL_HOOK
 		// FIXME: use a new flag
 		ksu_mark_running_process();
 #endif // #ifndef CONFIG_KSU_SUSFS
