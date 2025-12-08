@@ -293,7 +293,6 @@ int ksu_handle_execveat_sucompat(int *fd, struct filename **filename_ptr,
 		return 0;
 	}
 
-
 	if (!ksu_handle_execveat_init(filename)) {
 		return 0;
 	}
