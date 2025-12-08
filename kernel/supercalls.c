@@ -885,7 +885,7 @@ static const struct ksu_ioctl_cmd_map ksu_ioctl_handlers[] = {
 		  manager_or_root),
 	KSU_IOCTL(UID_SHOULD_UMOUNT, "UID_SHOULD_UMOUNT", do_uid_should_umount,
 		  manager_or_root),
-	KSU_IOCTL(GET_MANAGER_APPID, "GET_MANAGER_UID", do_get_manager_uid,
+	KSU_IOCTL(GET_MANAGER_APPID, "GET_MANAGER_UID", do_get_manager_appid,
 		  manager_or_root),
 	KSU_IOCTL(GET_APP_PROFILE, "GET_APP_PROFILE", do_get_app_profile,
 		  only_manager),

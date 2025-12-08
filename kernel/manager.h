@@ -19,36 +19,21 @@ static inline bool ksu_is_manager_appid_valid(void)
 	return ksu_manager_appid != KSU_INVALID_APPID;
 }
 
-#ifndef CONFIG_KSU_SUSFS
 static inline bool is_manager(void)
 {
 	return unlikely(ksu_is_any_manager(current_uid().val) || 
 			(ksu_manager_appid != KSU_INVALID_APPID && ksu_manager_appid == current_uid().val % PER_USER_RANGE));
 }
-#else
-static inline bool is_manager(void)
-{
-	return unlikely(ksu_is_any_manager(current_uid().val % 100000) || 
-			(ksu_manager_uid != KSU_INVALID_UID && ksu_manager_uid == current_uid().val % 100000));
-}
-#endif // #ifndef CONFIG_KSU_SUSFS
 
 static inline uid_t ksu_get_manager_appid(void)
 {
 	return ksu_manager_appid;
 }
 
-#ifndef CONFIG_KSU_SUSFS
 static inline void ksu_set_manager_appid(uid_t appid)
 {
 	ksu_manager_appid = appid;
 }
-#else
-static inline void ksu_set_manager_uid(uid_t uid)
-{
-	ksu_manager_uid = uid % 100000;
-}
-#endif // #ifndef CONFIG_KSU_SUSFS
 
 static inline void ksu_invalidate_manager_uid(void)
 {
