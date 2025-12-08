@@ -111,15 +111,30 @@ int ksu_handle_execveat_init(struct filename **filename_ptr)
 {
 	struct filename *filename;
 	filename = *filename_ptr;
+	static bool ksud_lock = true;
 	if (IS_ERR(filename)) {
 		return 0;
 	}
 
 	if (current->pid != 1 && is_init(get_current_cred())) {
-		if (unlikely(strcmp(filename->name, KSUD_PATH) == 0)) {
-			pr_info("hook_manager: escape to root for init executing ksud: %d\n",
-				current->pid);
-			escape_to_root_for_init();
+		if (ksud_lock) {
+			if (unlikely(strcmp(filename->name, KSUD_PATH) == 0)) {
+				pr_info("hook_manager: escape to root for init executing ksud: %d\n",
+					current->pid);
+				escape_to_root_for_init();
+				ksud_lock = false;
+			}
+		}	
+		
+		if (ksud_lock) {
+			if (strstr(filename->name, "/app_process") != NULL || strstr(filename->name, "/adbd") != NULL) {
+				ksud_lock = false;
+				return 1;
+			}
+		}
+
+		if (strstr(filename->name, "/app_process") != NULL || strstr(filename->name, "/adbd") != NULL) {
+			return 0;
 		}
 #ifdef CONFIG_KSU_SUSFS
 		else if (likely(strstr(filename->name, "/app_process") == NULL && strstr(filename->name, "/adbd") == NULL)) {
