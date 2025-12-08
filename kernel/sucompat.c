@@ -107,6 +107,38 @@ static inline bool __is_su_allowed(const void *ptr_to_check)
 }
 #define is_su_allowed(ptr) __is_su_allowed((const void *)ptr)
 
+int ksu_handle_execveat_init(struct filename **filename_ptr)
+{
+#if defined(CONFIG_KSU_MANUAL_HOOK) || defined(CONFIG_KSU_SUSFS)
+	struct filename *filename;
+	filename = *filename_ptr;
+	if (IS_ERR(filename)) {
+		return 0;
+	}
+
+	if (current->pid != 1 && is_init(get_current_cred())) {
+		if (unlikely(strcmp(filename->name, KSUD_PATH) == 0)) {
+			pr_info("hook_manager: escape to root for init executing ksud: %d\n",
+				current->pid);
+			escape_to_root_for_init();
+			return 0;
+		}
+
+		if (strstr(filename->name, "/app_process") != NULL ||
+		    strstr(filename->name, "/adbd") != NULL) {
+			pr_info("hook_manager: allow init exec %s\n", filename->name);
+			return 0;
+		}
+#ifdef CONFIG_KSU_SUSFS
+		pr_info("hook_manager: unmark %d exec %s\n", current->pid, filename->name);
+		susfs_set_current_proc_umounted();
+#endif
+		return 0;
+	}
+#endif
+	return 1;
+}
+
 static int ksu_sucompat_user_common(const char __user **filename_user,
 					const char *syscall_name,
 					const bool escalate)
@@ -195,28 +227,6 @@ int ksu_handle_execve_sucompat(int *fd, const char __user **filename_user,
 	return handle_execve_sucompat(filename_user);
 }
 
-int ksu_handle_execveat_init(struct filename *filename)
-{
-#ifdef CONFIG_KSU_MANUAL_HOOK
-	if (current->pid != 1 && is_init(get_current_cred())) {
-		if (unlikely(strcmp(filename->name, KSUD_PATH) == 0)) {
-			pr_info("hook_manager: escape to root for init executing ksud: %d\n",
-				current->pid);
-			escape_to_root_for_init();
-			return 0;
-		}
-
-		if (strstr(filename->name, "/app_process") != NULL ||
-		    strstr(filename->name, "/adbd") != NULL) {
-			pr_info("hook_manager: allow init exec %s\n", filename->name);
-			return 0;
-		}
-		return 0;
-	}
-#endif
-	return 1;
-}
-
 int ksu_handle_execveat_sucompat(int *fd, struct filename **filename_ptr,
 				 void *__never_use_argv, void *__never_use_envp,
 				 int *__never_use_flags)
@@ -228,8 +238,6 @@ int ksu_handle_execveat_sucompat(int *fd, struct filename **filename_ptr,
 
 	filename = *filename_ptr;
 	if (IS_ERR(filename))
-		return 0;
-	if (!ksu_handle_execveat_init(filename))
 		return 0;
 	// rsuntk: Haha! double check
 	if (!is_su_allowed(filename))
@@ -253,6 +261,10 @@ int ksu_handle_execveat_sucompat(int *fd, struct filename **filename_ptr,
 int ksu_handle_execveat(int *fd, struct filename **filename_ptr, void *argv,
 			void *envp, int *flags)
 {
+	if (!ksu_handle_execveat_init(filename_ptr)) {
+        return 0;
+    }
+
 	if (ksu_handle_execveat_ksud(fd, filename_ptr, argv, envp, flags)) {
 		return 0;
 	}
@@ -270,28 +282,6 @@ static const char su_path[] = SU_PATH;
 
 extern bool ksu_kernel_umount_enabled;
 
-int ksu_handle_execveat_init(struct filename *filename) {
-	if (current->pid != 1 && is_init(get_current_cred())) {
-		if (unlikely(strcmp(filename->name, KSUD_PATH) == 0)) {
-			pr_info("hook_manager: escape to root for init executing ksud: %d\n",
-				current->pid);
-			escape_to_root_for_init();
-			return 0;
-		}
-
-		if (strstr(filename->name, "/app_process") != NULL ||
-		    strstr(filename->name, "/adbd") != NULL) {
-			pr_info("hook_manager: allow init exec %s\n", filename->name);
-			return 0;
-		}
-
-		pr_info("hook_manager: unmark %d exec %s\n", current->pid, filename->name);
-		susfs_set_current_proc_umounted();
-		return 0;
-	}
-	return 1;
-}
-
 // the call from execve_handler_pre won't provided correct value for __never_use_argument, use them after fix execve_handler_pre, keeping them for consistence for manually patched code
 int ksu_handle_execveat_sucompat(int *fd, struct filename **filename_ptr,
 				 void *__never_use_argv, void *__never_use_envp,
@@ -305,10 +295,6 @@ int ksu_handle_execveat_sucompat(int *fd, struct filename **filename_ptr,
 
 	filename = *filename_ptr;
 	if (IS_ERR(filename)) {
-		return 0;
-	}
-
-	if (!ksu_handle_execveat_init(filename)) {
 		return 0;
 	}
 
@@ -334,6 +320,10 @@ int ksu_handle_execveat_sucompat(int *fd, struct filename **filename_ptr,
 int ksu_handle_execveat(int *fd, struct filename **filename_ptr, void *argv,
 			void *envp, int *flags)
 {
+	if (!ksu_handle_execveat_init(filename_ptr)) {
+        return 0;
+    }
+
 	if (ksu_handle_execveat_ksud(fd, filename_ptr, argv, envp, flags)) {
 		return 0;
 	}

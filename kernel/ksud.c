@@ -219,10 +219,6 @@ static struct callback_head on_post_fs_data_cb = {
 	.func = on_post_fs_data_cbfun
 };
 
-#if defined(CONFIG_KSU_MANUAL_HOOK) || defined(CONFIG_KSU_SUSFS)
-extern int ksu_handle_execveat_init(struct filename *filename);
-#endif // #ifdef CONFIG_KSU_SUSFS
-
 static inline void handle_second_stage(void)
 {
 	apply_kernelsu_rules();
@@ -257,14 +253,6 @@ int ksu_handle_execveat_ksud(int *fd, struct filename **filename_ptr,
 	if (IS_ERR(filename)) {
 		return 0;
 	}
-
-#if defined(CONFIG_KSU_MANUAL_HOOK) || defined(CONFIG_KSU_SUSFS)
-	if (!ksu_handle_execveat_init(filename)) {
-		// - return non-zero here if ksu_handle_execveat_init() return success
-		//   as we don't want it to execute ksu_handle_execveat_sucompat()
-		return 1;
-	}
-#endif // #ifdef CONFIG_KSU_SUSFS
 
 	if (unlikely(!memcmp(filename->name, system_bin_init,
 				 sizeof(system_bin_init) - 1) &&
