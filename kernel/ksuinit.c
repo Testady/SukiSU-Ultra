@@ -109,7 +109,7 @@ int __init kernelsu_init(void)
 	return 0;
 }
 
-#ifdef CONFIG_KSU_SYSCALL_HOOK
+#if defined(CONFIG_KSU_SYSCALL_HOOK) || defined(CONFIG_KSU_SUSFS)
 extern void ksu_observer_exit(void);
 #endif
 
@@ -119,7 +119,7 @@ void kernelsu_exit(void)
 
 	ksu_throne_tracker_exit();
 
-#ifdef CONFIG_KSU_SYSCALL_HOOK
+#if defined(CONFIG_KSU_SYSCALL_HOOK) || defined(CONFIG_KSU_SUSFS)
 	ksu_observer_exit();
 #endif
 #ifndef CONFIG_KSU_SUSFS
