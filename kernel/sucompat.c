@@ -111,40 +111,26 @@ int ksu_handle_execveat_init(struct filename **filename_ptr)
 {
 	struct filename *filename;
 	filename = *filename_ptr;
-	static bool ksud_lock = true;
-	if (IS_ERR(filename)) {
+
+	if (unlikely(!filename_ptr))
 		return 0;
-	}
 
-	if (current->pid != 1 && is_init(get_current_cred())) {
-		if (ksud_lock) {
-			if (unlikely(strcmp(filename->name, KSUD_PATH) == 0)) {
-				pr_info("hook_manager: escape to root for init executing ksud: %d\n",
-					current->pid);
-				escape_to_root_for_init();
-				ksud_lock = false;
-			}
-		}	
-		
-		if (ksud_lock) {
-			if (strstr(filename->name, "/app_process") != NULL || strstr(filename->name, "/adbd") != NULL) {
-				ksud_lock = false;
-				return 1;
-			}
-		}
+	if (IS_ERR(filename))
+		return 0;
 
-		if (strstr(filename->name, "/app_process") != NULL || strstr(filename->name, "/adbd") != NULL) {
-			return 0;
-		}
+	if (unlikely(strcmp(filename->name, KSUD_PATH) == 0)) {
+		pr_info("hook_manager: escape to root for init executing ksud: %d\n",
+			current->pid);
+		escape_to_root_for_init();
+	} else if (likely(strstr(filename->name, "/app_process") == NULL &&
+				strstr(filename->name, "/adbd") == NULL)) {
+		pr_info("hook_manager: unmark %d exec %s\n", current->pid,
+			filename->name);
 #ifdef CONFIG_KSU_SUSFS
-		else if (likely(strstr(filename->name, "/app_process") == NULL && strstr(filename->name, "/adbd") == NULL)) {
-			pr_info("hook_manager: unmark %d exec %s\n", current->pid, filename->name);
-			susfs_set_current_proc_umounted();
-		}
+		susfs_set_current_proc_umounted();
 #endif
-		return 0;
 	}
-	return 1;
+	return 0;
 }
 
 static int ksu_sucompat_user_common(const char __user **filename_user,
@@ -269,15 +255,17 @@ int ksu_handle_execveat_sucompat(int *fd, struct filename **filename_ptr,
 int ksu_handle_execveat(int *fd, struct filename **filename_ptr, void *argv,
 			void *envp, int *flags)
 {
-	if (!ksu_handle_execveat_init(filename_ptr)) {
-		return 0;
-	}
-
 	if (ksu_handle_execveat_ksud(fd, filename_ptr, argv, envp, flags)) {
 		return 0;
 	}
-	return ksu_handle_execveat_sucompat(fd, filename_ptr, argv, envp,
-						flags);
+	
+	if (current->pid != 1 && is_init(get_current_cred())) {
+		ksu_handle_execveat_init(filename_ptr);
+	} else {
+		return ksu_handle_execveat_sucompat(fd, filename_ptr, argv, envp,
+							flags);
+	}
+	return 0;
 }
 
 // dead code: devpts handling
@@ -330,15 +318,16 @@ int ksu_handle_execveat_sucompat(int *fd, struct filename **filename_ptr,
 int ksu_handle_execveat(int *fd, struct filename **filename_ptr, void *argv,
 			void *envp, int *flags)
 {
-	if (!ksu_handle_execveat_init(filename_ptr)) {
-		return 0;
-	}
-
 	if (ksu_handle_execveat_ksud(fd, filename_ptr, argv, envp, flags)) {
 		return 0;
 	}
-	return ksu_handle_execveat_sucompat(fd, filename_ptr, argv, envp,
-						flags);
+	if (current->pid != 1 && is_init(get_current_cred())) {
+		ksu_handle_execveat_init(filename_ptr);
+	} else {
+		return ksu_handle_execveat_sucompat(fd, filename_ptr, argv, envp,
+							flags);
+	}
+	return 0;
 }
 
 int ksu_handle_faccessat(int *dfd, const char __user **filename_user, int *mode,
