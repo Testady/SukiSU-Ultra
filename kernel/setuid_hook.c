@@ -45,6 +45,8 @@
 #include "syscall_handler.h"
 #endif
 #include "kernel_umount.h"
+#include "kernel_compat.h"
+
 #include "sulog.h"
 
 #ifdef CONFIG_KSU_SUSFS
