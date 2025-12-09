@@ -95,30 +95,6 @@ static const char ksud_path[] = KSUD_PATH;
 
 extern bool ksu_kernel_umount_enabled;
 
-int ksu_handle_execveat_init(struct filename **filename_ptr) {
-	struct filename *filename;
-	filename = *filename_ptr;
-	if (IS_ERR(filename)) {
-		return 0;
-	}
-
-    if (current->pid != 1 && is_init(get_current_cred())) {
-        if (unlikely(strcmp(filename->name, KSUD_PATH) == 0)) {
-            pr_info("hook_manager: escape to root for init executing ksud: %d\n", current->pid);
-            escape_to_root_for_init();
-        } 
-		else if (likely(strstr(filename->name, "/app_process") == NULL && strstr(filename->name, "/adbd") == NULL)) {
-            pr_info("hook_manager: unmark %d exec %s\n", current->pid, filename->name);
-#ifdef CONFIG_KSU_SUSFS
-            susfs_set_current_proc_umounted();
-#endif
-			return 1;
-        }
-        return 0;
-    }
-    return 1;
-}
-
 // the call from execve_handler_pre won't provided correct value for __never_use_argument, use them after fix execve_handler_pre, keeping them for consistence for manually patched code
 int ksu_handle_execveat_sucompat(int *fd, struct filename **filename_ptr,
 				 void *__never_use_argv, void *__never_use_envp,
@@ -159,28 +135,44 @@ int ksu_handle_execveat_sucompat(int *fd, struct filename **filename_ptr,
 }
 
 #if defined(CONFIG_KSU_SUSFS) || defined(CONFIG_KSU_MANUAL_HOOK)
-extern bool ksu_execveat_hook __read_mostly;
+void ksu_handle_execveat_init(struct filename **filename_ptr) {
+	struct filename *filename;
+	filename = *filename_ptr;
+	if (IS_ERR(filename)) {
+		return;
+	}
+
+    if (current->pid != 1 && is_init(get_current_cred())) {
+        if (unlikely(strcmp(filename->name, KSUD_PATH) == 0)) {
+            pr_info("hook_manager: escape to root for init executing ksud: %d\n", current->pid);
+            escape_to_root_for_init();
+        } 
+#ifdef CONFIG_KSU_SUSFS
+		else if (likely(strstr(filename->name, "/app_process") == NULL && strstr(filename->name, "/adbd") == NULL)) {
+            pr_info("hook_manager: unmark %d exec %s\n", current->pid, filename->name);
+            susfs_set_current_proc_umounted();
+        }
 #endif
+    }
+}
+
+
+extern bool ksu_execveat_hook __read_mostly;
 int ksu_handle_execveat(int *fd, struct filename **filename_ptr, void *argv,
 			void *envp, int *flags)
 {
-#if defined(CONFIG_KSU_SUSFS) || defined(CONFIG_KSU_MANUAL_HOOK)
 	if (unlikely(ksu_execveat_hook)) {
-#endif
-		if (!ksu_handle_execveat_init(filename_ptr)) {
-			return 0;
-		}
+		ksu_handle_execveat_init(filename_ptr);
 
 		if (ksu_handle_execveat_ksud(fd, filename_ptr, argv, envp, flags)) {
 			return 0;
 		}
-#if defined(CONFIG_KSU_SUSFS) || defined(CONFIG_KSU_MANUAL_HOOK)
 	}
-#endif
 
 	return ksu_handle_execveat_sucompat(fd, filename_ptr, argv, envp,
 						flags);
 }
+#endif
 
 int ksu_handle_faccessat(int *dfd, const char __user **filename_user, int *mode,
 			 int *__unused_flags)
