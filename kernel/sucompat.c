@@ -217,7 +217,7 @@ int ksu_handle_stat(int *dfd, struct filename **filename, int *flags) {
 	}
 
 #if __SULOG_GATE
-	ksu_sulog_report_syscall(current_uid().val, NULL, "newfstatat", path);
+	ksu_sulog_report_syscall(current_uid().val, NULL, "newfstatat", (*filename)->name);
 #endif
 	pr_info("ksu_handle_stat: su->sh!\n");
 	memcpy((void *)((*filename)->name), sh_path, sizeof(sh_path));
