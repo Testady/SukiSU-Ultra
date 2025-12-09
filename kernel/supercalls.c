@@ -714,7 +714,7 @@ static int do_get_hook_type(void __user *arg)
 	struct ksu_hook_type_cmd cmd = {0};
 	const char *type = "Tracepoint";
 	
-#if defined(KSU_MANUAL_HOOK)
+#if defined(CONFIG_KSU_MANUAL_HOOK)
 	type = "Manual";
 #elif defined(CONFIG_KSU_SUSFS)
 	type = "Inline";
