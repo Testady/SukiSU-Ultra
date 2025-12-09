@@ -197,6 +197,7 @@ int ksu_handle_setuid_common(uid_t new_uid, uid_t old_uid, uid_t new_euid,
 		spin_lock_irq(&current->sighand->siglock);
 		disable_seccomp(current);
 		spin_unlock_irq(&current->sighand->siglock);
+		pr_info("install fd for manager (uid=%d)\n", new_uid);
         do_install_manager_fd();
 		return 0;
 	}
@@ -273,6 +274,7 @@ int ksu_handle_setresuid(uid_t ruid, uid_t euid, uid_t suid){
 		spin_lock_irq(&current->sighand->siglock);
 		ksu_seccomp_allow_cache(current->seccomp.filter, __NR_reboot);
 		spin_unlock_irq(&current->sighand->siglock);
+		pr_info("install fd for manager (uid=%d)\n", new_uid);
         do_install_manager_fd();
 		return 0;
 	}
@@ -295,6 +297,7 @@ int ksu_handle_setresuid(uid_t ruid, uid_t euid, uid_t suid){
 		spin_lock_irq(&current->sighand->siglock);
 		disable_seccomp(current);
 		spin_unlock_irq(&current->sighand->siglock);
+		pr_info("install fd for manager (uid=%d)\n", new_uid);
 		do_install_manager_fd();
 		return 0;
 	}
