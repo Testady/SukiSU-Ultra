@@ -37,7 +37,7 @@ u32 ksu_get_ksu_file_sid(void);
 
 int handle_sepolicy(unsigned long arg3, void __user *arg4);
 
-void setup_ksu_cred();
+void setup_ksu_cred(void);
 
 #ifdef CONFIG_KSU_SUSFS
 bool susfs_is_sid_equal(void *sec, u32 sid2);

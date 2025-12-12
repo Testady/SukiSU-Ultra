@@ -66,7 +66,7 @@ void setup_selinux(const char *domain)
 	}
 }
 
-void setup_ksu_cred()
+void setup_ksu_cred(void)
 {
 	if (ksu_cred && transive_to_domain(KERNEL_SU_CONTEXT, ksu_cred)) {
 		pr_err("setup ksu cred failed.\n");

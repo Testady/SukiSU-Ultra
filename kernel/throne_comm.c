@@ -13,6 +13,7 @@
 #include <linux/pid.h>
 #include <linux/version.h>
 
+#include "kernel_compat.h"
 #include "klog.h"
 #include "throne_comm.h"
 #include "ksu.h"
@@ -62,7 +63,7 @@ static void do_save_throne_state(struct callback_head *_cb)
 		goto revert;
 	}
 
-	if (kernel_write(fp, &state_char, sizeof(state_char), &off) != sizeof(state_char)) {
+	if (ksu_kernel_write_compat(fp, &state_char, sizeof(state_char), &off) != sizeof(state_char)) {
 		pr_err("save_throne_state write failed\n");
 		goto close_file;
 	}
@@ -91,7 +92,7 @@ static void do_load_throne_state(struct callback_head *_cb)
 		goto revert;
 	}
 
-	ret = kernel_read(fp, &state_char, sizeof(state_char), &off);
+	ret = ksu_kernel_read_compat(fp, &state_char, sizeof(state_char), &off);
 	if (ret != sizeof(state_char)) {
 		pr_err("load_throne_state read err: %zd\n", ret);
 		ksu_uid_scanner_enabled = false;

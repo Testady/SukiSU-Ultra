@@ -108,14 +108,18 @@ int nuke_ext4_sysfs(const char *mnt)
 {
 #ifdef CONFIG_EXT4_FS
 	struct path path;
-	int err = kern_path(mnt, 0, &path);
+	struct super_block *sb = NULL;
+	const char *name = NULL;
+	int err;
+	
+	err = kern_path(mnt, 0, &path);
 	if (err) {
 		pr_err("nuke path err: %d\n", err);
 		return err;
 	}
 
-	struct super_block *sb = path.dentry->d_inode->i_sb;
-	const char *name = sb->s_type->name;
+	sb = path.dentry->d_inode->i_sb;
+	name = sb->s_type->name;
 	if (strcmp(name, "ext4") != 0) {
 		pr_info("nuke but module aren't mounted\n");
 		path_put(&path);
@@ -354,7 +358,7 @@ static ssize_t read_proxy(struct file *file, char __user *buf, size_t count,
 	bool first_read = file->f_pos == 0;
 	ssize_t ret = orig_read(file, buf, count, pos);
 	if (first_read) {
-		pr_info("read_proxy append %ld + %ld\n", ret, read_count_append);
+		pr_info("read_proxy append %zd + %zd\n", ret, read_count_append);
 		ret += read_count_append;
 	}
 	return ret;
@@ -365,7 +369,7 @@ static ssize_t read_iter_proxy(struct kiocb *iocb, struct iov_iter *to)
 	bool first_read = iocb->ki_pos == 0;
 	ssize_t ret = orig_read_iter(iocb, to);
 	if (first_read) {
-		pr_info("read_iter_proxy append %ld + %ld\n", ret, read_count_append);
+		pr_info("read_iter_proxy append %zd + %zd\n", ret, read_count_append);
 		ret += read_count_append;
 	}
 	return ret;

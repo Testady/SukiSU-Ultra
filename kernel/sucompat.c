@@ -1,4 +1,3 @@
-#include <linux/compiler_types.h>
 #include <linux/version.h>
 #include <linux/preempt.h>
 #include <linux/printk.h>
@@ -27,6 +26,8 @@
 #include "objsec.h"
 #endif // #ifdef CONFIG_KSU_SUSFS
 
+#include "kernel_compat.h"
+#include "ksud.h"
 #include "allowlist.h"
 #include "feature.h"
 #include "klog.h" // IWYU pragma: keep
@@ -80,13 +81,6 @@ static char __user *sh_user_path(void)
 	static const char sh_path[] = "/system/bin/sh";
 
 	return userspace_stack_buffer(sh_path, sizeof(sh_path));
-}
-
-static char __user *ksud_user_path(void)
-{
-	static const char ksud_path[] = KSUD_PATH;
-
-	return userspace_stack_buffer(ksud_path, sizeof(ksud_path));
 }
 
 static const char sh_path[] = SH_PATH;
@@ -226,6 +220,8 @@ int ksu_handle_stat(int *dfd, struct filename **filename, int *flags) {
 #else
 int ksu_handle_stat(int *dfd, const char __user **filename_user, int *flags)
 {
+	char path[sizeof(su_path) + 1] = {0};
+
 	if (!ksu_su_compat_enabled){
 		return 0;
 	}
@@ -236,8 +232,6 @@ int ksu_handle_stat(int *dfd, const char __user **filename_user, int *flags)
 
 	if (!ksu_is_allow_uid_for_current(current_uid().val))
 		return 0;
-
-	char path[sizeof(su_path) + 1] = {0};
 
 	ksu_strncpy_from_user_nofault(path, *filename_user, sizeof(path));
 

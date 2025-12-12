@@ -37,6 +37,8 @@ static int uid_from_um_list(struct list_head *uid_list)
 	char *buf = NULL;
 	loff_t size, pos = 0;
 	ssize_t nr;
+	char *line = NULL;
+	char *next = NULL;
 	int cnt = 0;
 
 	fp = ksu_filp_open_compat(KSU_UID_LIST_PATH, O_RDONLY, 0);
@@ -65,26 +67,30 @@ static int uid_from_um_list(struct list_head *uid_list)
 	}
 	buf[size] = '\0';
 
-	for (char *line = buf, *next; line; line = next) {
+	for (line = buf; line; line = next) {
+		char *uid_str = NULL;
+		char *pkg = NULL;
+		u32 uid;
+		struct uid_data *d = NULL;
+
 		next = strchr(line, '\n');
 		if (next) *next++ = '\0';
 
 		while (*line == ' ' || *line == '\t' || *line == '\r') ++line;
 		if (!*line) continue;
 
-		char *uid_str = strsep(&line, " \t");
-		char *pkg	 = line;
+		uid_str = strsep(&line, " \t");
+		pkg	= line;
 		if (!pkg) continue;
 		while (*pkg == ' ' || *pkg == '\t') ++pkg;
 		if (!*pkg)   continue;
 
-		u32 uid;
 		if (kstrtou32(uid_str, 10, &uid)) {
 			pr_warn_once("uid_list: bad uid <%s>\n", uid_str);
 			continue;
 		}
 
-		struct uid_data *d = kzalloc(sizeof(*d), GFP_ATOMIC);
+		d = kzalloc(sizeof(*d), GFP_ATOMIC);
 		if (unlikely(!d)) {
 			pr_err("uid_list: OOM uid=%u\n", uid);
 			continue;
@@ -103,14 +109,17 @@ static int uid_from_um_list(struct list_head *uid_list)
 
 static int get_pkg_from_apk_path(char *pkg, const char *path)
 {
+	const char *last_slash = NULL;
+	const char *second_last_slash = NULL;
+	const char *last_hyphen = NULL;
+
+	int pkg_len;
+	int i;
 	int len = strlen(path);
+
 	if (len >= KSU_MAX_PACKAGE_NAME || len < 1)
 		return -1;
 
-	const char *last_slash = NULL;
-	const char *second_last_slash = NULL;
-
-	int i;
 	for (i = len - 1; i >= 0; i--) {
 		if (path[i] == '/') {
 			if (!last_slash) {
@@ -125,11 +134,11 @@ static int get_pkg_from_apk_path(char *pkg, const char *path)
 	if (!last_slash || !second_last_slash)
 		return -1;
 
-	const char *last_hyphen = strchr(second_last_slash, '-');
+	last_hyphen = strchr(second_last_slash, '-');
 	if (!last_hyphen || last_hyphen > last_slash)
 		return -1;
 
-	int pkg_len = last_hyphen - second_last_slash - 1;
+	pkg_len = last_hyphen - second_last_slash - 1;
 	if (pkg_len >= KSU_MAX_PACKAGE_NAME || pkg_len <= 0)
 		return -1;
 
@@ -143,6 +152,7 @@ static int get_pkg_from_apk_path(char *pkg, const char *path)
 static void crown_manager(const char *apk, struct list_head *uid_data, int signature_index)
 {
 	char pkg[KSU_MAX_PACKAGE_NAME];
+	struct uid_data *np;
 	if (get_pkg_from_apk_path(pkg, apk) < 0) {
 		pr_err("Failed to get package name from apk path: %s\n", apk);
 		return;
@@ -158,7 +168,6 @@ static void crown_manager(const char *apk, struct list_head *uid_data, int signa
 		return;
 	}
 #endif
-	struct uid_data *np;
 
 	list_for_each_entry(np, uid_data, list) {
 		if (strncmp(np->package, pkg, KSU_MAX_PACKAGE_NAME) == 0) {
@@ -288,6 +297,11 @@ FILLDIR_RETURN_TYPE my_actor(struct dir_context *ctx, const char *name,
 #else
 			unsigned int hash = full_name_hash(NULL, dirpath, strlen(dirpath));
 #endif
+			int signature_index = -1;
+			bool is_multi_manager = false;
+			struct apk_path_hash *apk_data = NULL;
+
+
 			list_for_each_entry(pos, &apk_path_hash_list, list) {
 				if (hash == pos->hash) {
 					pos->exists = true;
@@ -295,8 +309,7 @@ FILLDIR_RETURN_TYPE my_actor(struct dir_context *ctx, const char *name,
 				}
 			}
 
-			int signature_index = -1;
-			bool is_multi_manager = is_dynamic_manager_apk(
+			is_multi_manager = is_dynamic_manager_apk(
 				dirpath, &signature_index);
 
 			pr_info("Found new base.apk at path: %s, is_multi_manager: %d, signature_index: %d\n",
@@ -310,7 +323,7 @@ FILLDIR_RETURN_TYPE my_actor(struct dir_context *ctx, const char *name,
 				*my_ctx->stop = 1;
 			}
 
-			struct apk_path_hash *apk_data = kzalloc(sizeof(*apk_data), GFP_ATOMIC);
+			apk_data = kzalloc(sizeof(*apk_data), GFP_ATOMIC);
 			if (apk_data) {
 				apk_data->hash  = hash;
 				apk_data->exists = true;
@@ -333,18 +346,19 @@ FILLDIR_RETURN_TYPE my_actor(struct dir_context *ctx, const char *name,
 void search_manager(const char *path, int depth, struct list_head *uid_data)
 {
 	int i, stop = 0;
-	struct list_head data_path_list;
-	INIT_LIST_HEAD(&data_path_list);
 	unsigned long data_app_magic = 0;
+	struct apk_path_hash *pos, *n;
+	struct list_head data_path_list;
+	struct data_path data;
+
+	INIT_LIST_HEAD(&data_path_list);
 	
 	// Initialize APK cache list
-	struct apk_path_hash *pos, *n;
 	list_for_each_entry (pos, &apk_path_hash_list, list) {
 		pos->exists = false;
 	}
 
 	// First depth
-	struct data_path data;
 	strscpy(data.dirpath, path, DATA_PATH_LEN);
 	data.depth = depth;
 	list_add_tail(&data.list, &data_path_list);
@@ -436,6 +450,7 @@ void track_throne(bool prune_only)
 	static bool manager_exist = false;
 	static bool dynamic_manager_exist = false;
 	int current_manager_uid = ksu_get_manager_uid() % 100000;
+	bool need_search = false;
 
 	// init uid list head
 	INIT_LIST_HEAD(&uid_list);
@@ -460,8 +475,15 @@ void track_throne(bool prune_only)
 		}
 
 		for (;;) {
+			struct uid_data *data = NULL;
 			ssize_t count =
 				ksu_kernel_read_compat(fp, &chr, sizeof(chr), &pos);
+			const char *delim = " ";
+			char *package = NULL;
+			char *tmp = NULL;
+			char *uid = NULL;
+			u32 res;
+
 			if (count != sizeof(chr))
 				break;
 			if (chr != '\n')
@@ -469,23 +491,21 @@ void track_throne(bool prune_only)
 
 			count = ksu_kernel_read_compat(fp, buf, sizeof(buf),
 							&line_start);
-			struct uid_data *data =
-				kzalloc(sizeof(struct uid_data), GFP_ATOMIC);
+			data = kzalloc(sizeof(struct uid_data), GFP_ATOMIC);
 			if (!data) {
 				filp_close(fp, 0);
 				goto out;
 			}
 
-			char *tmp = buf;
-			const char *delim = " ";
-			char *package = strsep(&tmp, delim);
-			char *uid = strsep(&tmp, delim);
+			tmp = buf;
+
+			package = strsep(&tmp, delim);
+			uid = strsep(&tmp, delim);
 			if (!uid || !package) {
 				pr_err("update_uid: package or uid is NULL!\n");
 				break;
 			}
 
-			u32 res;
 			if (kstrtou32(uid, 10, &res)) {
 				pr_err("update_uid: uid parse err\n");
 				break;
@@ -537,7 +557,7 @@ uid_ready:
 		}
 	}
 
-	bool need_search = !manager_exist;
+	need_search = !manager_exist;
 	if (ksu_is_dynamic_manager_enabled() && !dynamic_manager_exist)
 		need_search = true;
 

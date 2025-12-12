@@ -35,6 +35,10 @@ kernelsu-objs += selinux/selinux.o
 kernelsu-objs += selinux/sepolicy.o
 kernelsu-objs += selinux/rules.o
 
+ccflags-y += -Wno-implicit-function-declaration -Wno-strict-prototypes
+ccflags-y += -Wno-declaration-after-statement -Wno-unused-function -Wno-unused-variable -Wno-missing-braces
+ccflags-y += -Wno-int-to-pointer-cast -Wno-declaration-after-statement
+
 ccflags-y += -I$(srctree)/security/selinux -I$(srctree)/security/selinux/include
 ccflags-y += -I$(objtree)/security/selinux -include $(srctree)/include/uapi/asm-generic/errno.h
 
@@ -203,10 +207,6 @@ ifdef KSU_MANAGER_PACKAGE
 ccflags-y += -DKSU_MANAGER_PACKAGE=\"$(KSU_MANAGER_PACKAGE)\"
 $(info -- SukiSU Manager package name: $(KSU_MANAGER_PACKAGE))
 endif
-
-
-ccflags-y += -Wno-implicit-function-declaration -Wno-strict-prototypes -Wno-int-conversion -Wno-gcc-compat
-ccflags-y += -Wno-declaration-after-statement -Wno-unused-function -Wno-unused-variable
 
 ## For susfs stuff ##
 ifeq ($(shell test -e $(srctree)/fs/susfs.c; echo $$?),0)

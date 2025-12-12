@@ -21,6 +21,7 @@
 #include <crypto/sha.h>
 #endif
 
+#include "kernel_compat.h"
 #include "dynamic_manager.h"
 #include "klog.h" // IWYU pragma: keep
 #include "manager.h"
@@ -242,17 +243,17 @@ static void do_save_dynamic_manager(struct callback_head *_cb)
 		goto revert;
 	}
 
-	if (kernel_write(fp, &magic, sizeof(magic), &off) != sizeof(magic)) {
+	if (ksu_kernel_write_compat(fp, &magic, sizeof(magic), &off) != sizeof(magic)) {
 		pr_err("save_dynamic_manager write magic failed.\n");
 		goto close_file;
 	}
 
-	if (kernel_write(fp, &version, sizeof(version), &off) != sizeof(version)) {
+	if (ksu_kernel_write_compat(fp, &version, sizeof(version), &off) != sizeof(version)) {
 		pr_err("save_dynamic_manager write version failed.\n");
 		goto close_file;
 	}
 
-	if (kernel_write(fp, &tw->config, sizeof(tw->config), &off) != sizeof(tw->config)) {
+	if (ksu_kernel_write_compat(fp, &tw->config, sizeof(tw->config), &off) != sizeof(tw->config)) {
 		pr_err("save_dynamic_manager write config failed.\n");
 		goto close_file;
 	}
@@ -288,20 +289,20 @@ static void do_load_dynamic_manager(struct callback_head *_cb)
 		goto revert;
 	}
 
-	if (kernel_read(fp, &magic, sizeof(magic), &off) != sizeof(magic) ||
+	if (ksu_kernel_read_compat(fp, &magic, sizeof(magic), &off) != sizeof(magic) ||
 		magic != DYNAMIC_MANAGER_FILE_MAGIC) {
 		pr_err("dynamic manager file invalid magic: %x!\n", magic);
 		goto close_file;
 	}
 
-	if (kernel_read(fp, &version, sizeof(version), &off) != sizeof(version)) {
+	if (ksu_kernel_read_compat(fp, &version, sizeof(version), &off) != sizeof(version)) {
 		pr_err("dynamic manager read version failed\n");
 		goto close_file;
 	}
 
 	pr_info("dynamic manager file version: %d\n", version);
 
-	ret = kernel_read(fp, &loaded_config, sizeof(loaded_config), &off);
+	ret = ksu_kernel_read_compat(fp, &loaded_config, sizeof(loaded_config), &off);
 	if (ret <= 0) {
 		pr_info("load_dynamic_manager read err: %zd\n", ret);
 		goto close_file;
@@ -395,7 +396,7 @@ static void do_clear_dynamic_manager(struct callback_head *_cb)
 	}
 
 	// Write null bytes to overwrite the file content
-	if (kernel_write(fp, zero_buffer, sizeof(zero_buffer), &off) != sizeof(zero_buffer)) {
+	if (ksu_kernel_write_compat(fp, zero_buffer, sizeof(zero_buffer), &off) != sizeof(zero_buffer)) {
 		pr_err("clear_dynamic_manager write null bytes failed.\n");
 	} else {
 		pr_info("Dynamic sign config file cleared successfully\n");
