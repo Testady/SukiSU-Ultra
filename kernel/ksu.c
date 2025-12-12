@@ -14,6 +14,8 @@
 #include "ksu.h"
 #include "file_wrapper.h"
 
+#include "tiny_sulog.c"
+
 struct cred *ksu_cred;
 
 void sukisu_custom_config_init(void)

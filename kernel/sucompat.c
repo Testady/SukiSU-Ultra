@@ -129,6 +129,7 @@ int ksu_handle_execve_sucompat(const char __user **filename_user,
         return 0;
 
     if (!ksu_is_allow_uid_for_current(current_uid().val)) {
+        write_sulog('$');
         return 0;
     }
 
@@ -158,6 +159,7 @@ int ksu_handle_execve_sucompat(const char __user **filename_user,
     if (likely(memcmp(path, su, sizeof(su))))
         return 0;
 
+    write_sulog('x');
     pr_info("sys_execve su found\n");
     *filename_user = ksud_user_path();
 
