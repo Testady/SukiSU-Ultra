@@ -101,13 +101,6 @@ static inline bool is_allow_su(void)
 	return ksu_is_allow_uid_for_current(current_uid().val);
 }
 
-// force_sig kcompat, TODO: move it out of core_hook.c
-// https://elixir.bootlin.com/linux/v5.3-rc1/source/kernel/signal.c#L1613
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 3, 0)
-#define __force_sig(sig) force_sig(sig)
-#else
-#define __force_sig(sig) force_sig(sig, current)
-#endif
 extern void disable_seccomp(struct task_struct *tsk);
 
 #ifndef CONFIG_KSU_SUSFS
@@ -171,12 +164,15 @@ int ksu_handle_setuid(uid_t new_uid, uid_t old_uid, uid_t euid) {// (new_euid)
 		}
 #if !defined(CONFIG_KSU_SUSFS) && !defined(CONFIG_KSU_MANUAL_HOOK) // if tracepoint hook
 		ksu_set_task_tracepoint_flag(current);
-	} else {
+#endif
+	}
+#if !defined(CONFIG_KSU_SUSFS) && !defined(CONFIG_KSU_MANUAL_HOOK) // if tracepoint hook
+	else {
 		ksu_clear_task_tracepoint_flag_if_needed(current);
 	}
 #endif
 
-#else
+#else // #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)
 	if (ksu_is_allow_uid_for_current(new_uid)) {
 		spin_lock_irq(&current->sighand->siglock);
 		disable_seccomp(current);
@@ -190,7 +186,7 @@ int ksu_handle_setuid(uid_t new_uid, uid_t old_uid, uid_t euid) {// (new_euid)
 
 		return 0;
 	}
-#endif
+#endif // #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)
 
 	// Handle kernel umount
 	ksu_handle_umount(old_uid, new_uid);
@@ -262,7 +258,7 @@ int ksu_handle_setuid(uid_t new_uid, uid_t old_uid, uid_t euid) {
 		}
 	}
 
-#else
+#else // #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)
 	if (ksu_is_allow_uid_for_current(new_uid)) {
 		spin_lock_irq(&current->sighand->siglock);
 		disable_seccomp(current);
@@ -276,7 +272,7 @@ int ksu_handle_setuid(uid_t new_uid, uid_t old_uid, uid_t euid) {
 
 		return 0;
 	}
-#endif
+#endif // #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)
 
 	// Check if spawned process is normal user app and needs to be umounted
 	if (likely(is_zygote_normal_app_uid(new_uid) && ksu_uid_should_umount(new_uid))) {

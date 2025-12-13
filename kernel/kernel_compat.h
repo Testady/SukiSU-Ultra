@@ -51,6 +51,13 @@ extern struct key *init_session_keyring;
 #define ksu_access_ok(addr, size) access_ok(VERIFY_READ, addr, size)
 #endif
 
+// https://elixir.bootlin.com/linux/v5.3-rc1/source/kernel/signal.c#L1613
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 3, 0)
+#define __force_sig(sig) force_sig(sig)
+#else
+#define __force_sig(sig) force_sig(sig, current)
+#endif
+
 // Linux >= 5.7
 // task_work_add (struct, struct, enum)
 // Linux pre-5.7
