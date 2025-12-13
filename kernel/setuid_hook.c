@@ -44,6 +44,7 @@
 #if !defined(CONFIG_KSU_SUSFS) && !defined(CONFIG_KSU_MANUAL_HOOK)
 #include "syscall_hook_manager.h"
 #endif
+#include "kernel_compat.h"
 #include "kernel_umount.h"
 #include "sulog.h"
 
