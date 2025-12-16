@@ -106,8 +106,7 @@ static void do_install_manager_fd(void)
 #define send_sigkill() force_sig(SIGKILL, current)
 #endif
 
-extern void disable_seccomp(struct task_struct *tsk);
-
+extern void disable_seccomp(void);
 #ifndef CONFIG_KSU_SUSFS
 int ksu_handle_setuid_common(uid_t new_uid, uid_t old_uid, uid_t new_euid)
 {
@@ -136,18 +135,15 @@ int ksu_handle_setuid_common(uid_t new_uid, uid_t old_uid, uid_t new_euid)
 		return 0;
 	}
 
-	// if on private space, see if its possibly the manager
-	if (new_uid > PER_USER_RANGE &&
-	    new_uid % PER_USER_RANGE == ksu_get_manager_appid()) {
-		ksu_set_manager_appid(new_uid);
-	}
-
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)
 	if (ksu_get_manager_appid() == new_uid % PER_USER_RANGE) {
 		spin_lock_irq(&current->sighand->siglock);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)
 		ksu_seccomp_allow_cache(current->seccomp.filter, __NR_reboot);
 #ifdef CONFIG_KSU_SYSCALL_HOOK
 		ksu_set_task_tracepoint_flag(current);
+#endif
+#else
+		disable_seccomp();
 #endif
 		spin_unlock_irq(&current->sighand->siglock);
 		pr_info("install fd for manager (uid=%d)\n", new_uid);
@@ -155,6 +151,7 @@ int ksu_handle_setuid_common(uid_t new_uid, uid_t old_uid, uid_t new_euid)
 		return 0;
 	}
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)
 	if (ksu_is_allow_uid_for_current(new_uid)) {
 		if (current->seccomp.mode == SECCOMP_MODE_FILTER &&
 		    current->seccomp.filter) {
@@ -170,18 +167,9 @@ int ksu_handle_setuid_common(uid_t new_uid, uid_t old_uid, uid_t new_euid)
 #endif
 	}
 #else
-	if (ksu_get_manager_appid() == new_uid % PER_USER_RANGE) {
-		spin_lock_irq(&current->sighand->siglock);
-		disable_seccomp(current);
-		spin_unlock_irq(&current->sighand->siglock);
-		pr_info("install fd for manager (uid=%d)\n", new_uid);
-		do_install_manager_fd();
-		return 0;
-	}
-
 	if (ksu_is_allow_uid_for_current(new_uid)) {
 		spin_lock_irq(&current->sighand->siglock);
-		disable_seccomp(current);
+		disable_seccomp();
 		spin_unlock_irq(&current->sighand->siglock);
 	}
 #endif
@@ -227,12 +215,6 @@ int ksu_handle_setresuid(uid_t ruid, uid_t euid, uid_t suid)
 			}
 		}
 		return 0;
-	}
-
-	// if on private space, see if its possibly the manager
-	if (new_uid > PER_USER_RANGE &&
-	    new_uid % PER_USER_RANGE == ksu_get_manager_appid()) {
-		ksu_set_manager_appid(new_uid);
 	}
 
 	// We only interest in process spwaned by zygote
