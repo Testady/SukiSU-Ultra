@@ -184,7 +184,7 @@ void escape_with_root_profile(void)
 	}
 #endif // #ifndef CONFIG_KSU_SUSFS
 
-    setup_mount_ns(profile->namespaces);
+	setup_mount_ns(profile->namespaces);
 }
 
 void escape_to_root_for_init(void)
@@ -206,14 +206,14 @@ static void disable_seccomp_for_target_task(void)
 	if (!tsk)
 		return;
 
-    assert_spin_locked(&tsk->sighand->siglock);
-	
+	assert_spin_locked(&tsk->sighand->siglock);
+
 #ifdef CONFIG_SECCOMP
-    if (tsk->seccomp.mode == SECCOMP_MODE_DISABLED && !tsk->seccomp.filter)
-        return;
+	if (tsk->seccomp.mode == SECCOMP_MODE_DISABLED && !tsk->seccomp.filter)
+		return;
 #endif
 	// disable seccomp
-    clear_tsk_thread_flag(tsk, TIF_SECCOMP);
+	clear_tsk_thread_flag(tsk, TIF_SECCOMP);
 
 #ifdef CONFIG_SECCOMP
 	// Skip releasing filter ref when its already NULL.
@@ -361,7 +361,7 @@ void escape_to_root_for_cmd_su(uid_t target_uid, pid_t target_pid)
 		ksu_set_task_tracepoint_flag(t);
 	}
 #endif // #ifndef CONFIG_KSU_SUSFS
-    setup_mount_ns(profile->namespaces);
+	setup_mount_ns(profile->namespaces);
 	pr_info("cmd_su: privilege escalation completed for UID: %d, PID: %d\n",
 		target_uid, target_pid);
 }

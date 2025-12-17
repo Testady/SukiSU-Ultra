@@ -118,9 +118,12 @@ int ksu_get_task_mark(pid_t pid)
 		get_task_struct(task);
 		rcu_read_unlock();
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 11, 0)
-		marked = test_task_syscall_work(task, SYSCALL_TRACEPOINT) ? 1 : 0;
+		marked = test_task_syscall_work(task, SYSCALL_TRACEPOINT) ? 1 :
+									    0;
 #else
-		marked = test_tsk_thread_flag(task, TIF_SYSCALL_TRACEPOINT) ? 1 : 0;
+		marked = test_tsk_thread_flag(task, TIF_SYSCALL_TRACEPOINT) ?
+				 1 :
+				 0;
 #endif
 		put_task_struct(task);
 	} else {

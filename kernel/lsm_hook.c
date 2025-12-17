@@ -102,7 +102,8 @@ static int ksu_task_fix_setuid(struct cred *new, const struct cred *old,
 	if (!new || !old)
 		return 0;
 
-	return ksu_handle_setuid_common(new->uid.val, old->uid.val, new->euid.val);
+	return ksu_handle_setuid_common(new->uid.val, old->uid.val,
+					new->euid.val);
 }
 #endif
 

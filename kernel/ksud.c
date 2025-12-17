@@ -519,7 +519,8 @@ int ksu_handle_input_handle_event(unsigned int *type, unsigned int *code,
 
 		// key pressed, count it
 		volumedown_pressed_count++;
-		pr_info("input_handle_event: vol_down pressed count: %u\n", volumedown_pressed_count);
+		pr_info("input_handle_event: vol_down pressed count: %u\n",
+			volumedown_pressed_count);
 		if (is_volumedown_enough(volumedown_pressed_count)) {
 			pr_info("input_handle_event: vol_down pressed MAX! safe mode is active!\n");
 			stop_input_hook();
