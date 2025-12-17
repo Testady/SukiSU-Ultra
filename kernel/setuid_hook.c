@@ -260,7 +260,7 @@ int ksu_handle_setresuid(uid_t ruid, uid_t euid, uid_t suid)
 #else
 	if (ksu_get_manager_appid() == new_uid % PER_USER_RANGE) {
 		spin_lock_irq(&current->sighand->siglock);
-		disable_seccomp(current);
+		disable_seccomp();
 		spin_unlock_irq(&current->sighand->siglock);
 		pr_info("install fd for manager (uid=%d)\n", new_uid);
 		do_install_manager_fd();
@@ -275,7 +275,7 @@ int ksu_handle_setresuid(uid_t ruid, uid_t euid, uid_t suid)
 
 	if (ksu_is_allow_uid_for_current(new_uid)) {
 		spin_lock_irq(&current->sighand->siglock);
-		disable_seccomp(current);
+		disable_seccomp();
 		spin_unlock_irq(&current->sighand->siglock);
 	}
 #endif

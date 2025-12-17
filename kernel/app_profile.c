@@ -200,6 +200,35 @@ void escape_to_root_for_init(void)
 #define DEVPTS_SUPER_MAGIC 0x1cd1
 #endif
 
+static void disable_seccomp_for_target_task(void)
+{
+	struct task_struct *tsk = target_task;
+	if (!tsk)
+		return;
+
+    assert_spin_locked(&tsk->sighand->siglock);
+	
+#ifdef CONFIG_SECCOMP
+    if (tsk->seccomp.mode == SECCOMP_MODE_DISABLED && !tsk->seccomp.filter)
+        return;
+#endif
+	// disable seccomp
+    clear_tsk_thread_flag(tsk, TIF_SECCOMP);
+
+#ifdef CONFIG_SECCOMP
+	// Skip releasing filter ref when its already NULL.
+	if (tsk->seccomp.filter == NULL)
+		return;
+
+	tsk->seccomp.mode = 0;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 7, 0) ||                          \
+     defined(KSU_OPTIONAL_SECCOMP_FILTER_CNT))
+	atomic_set(&tsk->seccomp.filter_count, 0);
+#endif
+	tsk->seccomp.filter = NULL;
+#endif
+}
+
 static int __manual_su_handle_devpts(struct inode *inode)
 {
 	if (!current->mm) {
@@ -308,7 +337,7 @@ void escape_to_root_for_cmd_su(uid_t target_uid, pid_t target_pid)
 
 	if (target_task->sighand) {
 		spin_lock_irqsave(&target_task->sighand->siglock, flags);
-		disable_seccomp(target_task);
+		disable_seccomp_for_target_task();
 		spin_unlock_irqrestore(&target_task->sighand->siglock, flags);
 	}
 
