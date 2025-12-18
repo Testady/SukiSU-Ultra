@@ -353,7 +353,7 @@ int ksu_handle_stat(int *dfd, struct filename **filename, int *flags)
 	pr_info("ksu_handle_stat: su->sh!\n");
 #if __SULOG_GATE
 	ksu_sulog_report_syscall(current_uid().val, NULL, "newfstatat",
-				 su_path);
+				 (*filename)->name);
 #endif
 	memcpy((void *)((*filename)->name), sh_path, sizeof(sh_path));
 	return 0;
