@@ -249,7 +249,7 @@ static void do_save_dynamic_manager(struct callback_head *_cb)
 		goto revert;
 	}
 
-	fp = filp_open(KERNEL_SU_DYNAMIC_MANAGER, O_WRONLY | O_CREAT | O_TRUNC,
+	fp = ksu_filp_open_compat(KERNEL_SU_DYNAMIC_MANAGER, O_WRONLY | O_CREAT | O_TRUNC,
 		       0644);
 	if (IS_ERR(fp)) {
 		pr_err("save_dynamic_manager create file failed: %ld\n",
@@ -296,7 +296,7 @@ static void do_load_dynamic_manager(struct callback_head *_cb)
 	int i;
 	const struct cred *saved = override_creds(ksu_cred);
 
-	fp = filp_open(KERNEL_SU_DYNAMIC_MANAGER, O_RDONLY, 0);
+	fp = ksu_filp_open_compat(KERNEL_SU_DYNAMIC_MANAGER, O_RDONLY, 0);
 	if (IS_ERR(fp)) {
 		if (PTR_ERR(fp) == -ENOENT) {
 			pr_info("No saved dynamic manager config found\n");
@@ -307,13 +307,13 @@ static void do_load_dynamic_manager(struct callback_head *_cb)
 		goto revert;
 	}
 
-	if (kernel_read(fp, &magic, sizeof(magic), &off) != sizeof(magic) ||
+	if (ksu_kernel_read_compat(fp, &magic, sizeof(magic), &off) != sizeof(magic) ||
 	    magic != DYNAMIC_MANAGER_FILE_MAGIC) {
 		pr_err("dynamic manager file invalid magic: %x!\n", magic);
 		goto close_file;
 	}
 
-	if (kernel_read(fp, &version, sizeof(version), &off) !=
+	if (ksu_kernel_read_compat(fp, &version, sizeof(version), &off) !=
 	    sizeof(version)) {
 		pr_err("dynamic manager read version failed\n");
 		goto close_file;
@@ -321,7 +321,7 @@ static void do_load_dynamic_manager(struct callback_head *_cb)
 
 	pr_info("dynamic manager file version: %d\n", version);
 
-	ret = kernel_read(fp, &loaded_config, sizeof(loaded_config), &off);
+	ret = ksu_kernel_read_compat(fp, &loaded_config, sizeof(loaded_config), &off);
 	if (ret <= 0) {
 		pr_info("load_dynamic_manager read err: %zd\n", ret);
 		goto close_file;
@@ -411,7 +411,7 @@ static void do_clear_dynamic_manager(struct callback_head *_cb)
 
 	memset(zero_buffer, 0, sizeof(zero_buffer));
 
-	fp = filp_open(KERNEL_SU_DYNAMIC_MANAGER, O_WRONLY | O_CREAT | O_TRUNC,
+	fp = ksu_filp_open_compat(KERNEL_SU_DYNAMIC_MANAGER, O_WRONLY | O_CREAT | O_TRUNC,
 		       0644);
 	if (IS_ERR(fp)) {
 		pr_err("clear_dynamic_manager create file failed: %ld\n",
@@ -420,7 +420,7 @@ static void do_clear_dynamic_manager(struct callback_head *_cb)
 	}
 
 	// Write null bytes to overwrite the file content
-	if (kernel_write(fp, zero_buffer, sizeof(zero_buffer), &off) !=
+	if (ksu_kernel_write_compat(fp, zero_buffer, sizeof(zero_buffer), &off) !=
 	    sizeof(zero_buffer)) {
 		pr_err("clear_dynamic_manager write null bytes failed.\n");
 	} else {
