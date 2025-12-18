@@ -138,10 +138,11 @@ bool ksu_get_app_profile(struct app_profile *profile)
 	struct perm_data *p = NULL;
 	struct list_head *pos = NULL;
 	bool found = false;
+	bool uid_match = false;
 
 	list_for_each (pos, &allow_list) {
 		p = list_entry(pos, struct perm_data, list);
-		bool uid_match = profile->current_uid == p->profile.current_uid;
+		uid_match = profile->current_uid == p->profile.current_uid;
 		if (uid_match) {
 			// found it, override it with ours
 			memcpy(profile, &p->profile, sizeof(*profile));
@@ -319,12 +320,14 @@ bool __ksu_is_allow_uid_for_current(uid_t uid)
 bool ksu_uid_should_umount(uid_t uid)
 {
 	struct app_profile profile = { .current_uid = uid };
+	bool found = false;
+
 	if (likely(ksu_is_manager_appid_valid()) &&
 	    unlikely(ksu_get_manager_appid() == uid % PER_USER_RANGE)) {
 		// we should not umount on manager!
 		return false;
 	}
-	bool found = ksu_get_app_profile(&profile);
+	found = ksu_get_app_profile(&profile);
 	if (!found) {
 		// no app profile found, it must be non root app
 		return default_non_root_profile.umount_modules;
@@ -383,10 +386,11 @@ static void do_persistent_allow_list(struct callback_head *_cb)
 	u32 version = FILE_FORMAT_VERSION;
 	struct perm_data *p = NULL;
 	struct list_head *pos = NULL;
+	struct file *fp = NULL;
 	loff_t off = 0;
 
 	mutex_lock(&allowlist_mutex);
-	struct file *fp = ksu_filp_open_compat(
+	fp = ksu_filp_open_compat(
 		KERNEL_SU_ALLOWLIST, O_WRONLY | O_CREAT | O_TRUNC, 0644);
 	if (IS_ERR(fp)) {
 		pr_err("save_allow_list create file failed: %ld\n",
@@ -427,6 +431,7 @@ unlock:
 void persistent_allow_list(void)
 {
 	struct task_struct *tsk;
+	struct callback_head *cb;
 
 	tsk = get_pid_task(find_vpid(1), PIDTYPE_PID);
 	if (!tsk) {
@@ -434,8 +439,7 @@ void persistent_allow_list(void)
 		return;
 	}
 
-	struct callback_head *cb =
-		kzalloc(sizeof(struct callback_head), GFP_KERNEL);
+	cb = kzalloc(sizeof(struct callback_head), GFP_KERNEL);
 	if (!cb) {
 		pr_err("save_allow_list alloc cb err\b");
 		goto put_task;
@@ -508,13 +512,13 @@ void ksu_prune_allowlist(bool (*is_uid_valid)(uid_t, char *, void *),
 			 void *data)
 {
 	struct perm_data *np, *n = NULL;
+	bool modified = false;
 
 	if (!ksu_boot_completed) {
 		pr_info("boot not completed, skip prune\n");
 		return;
 	}
 
-	bool modified = false;
 	// TODO: use RCU!
 	mutex_lock(&allowlist_mutex);
 	list_for_each_entry_safe (np, n, &allow_list, list) {
@@ -584,6 +588,7 @@ bool ksu_temp_grant_root_once(uid_t uid)
 	struct perm_data *p = NULL;
 	struct list_head *pos = NULL;
 	bool found = false;
+	bool ok = false;
 
 	list_for_each (pos, &allow_list) {
 		p = list_entry(pos, struct perm_data, list);
@@ -611,7 +616,7 @@ bool ksu_temp_grant_root_once(uid_t uid)
 	strcpy(profile.rp_config.profile.selinux_domain,
 	       default_root_profile.selinux_domain);
 
-	bool ok = ksu_set_app_profile(&profile, false);
+	ok = ksu_set_app_profile(&profile, false);
 	if (ok)
 		pr_info("pending_root: UID=%d granted and persisted\n", uid);
 	return ok;

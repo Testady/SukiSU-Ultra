@@ -626,7 +626,9 @@ static int do_nuke_ext4_sysfs(void __user *arg)
 
 	memset(mnt, 0, sizeof(mnt));
 
-	ret = strncpy_from_user(mnt, cmd.arg, sizeof(mnt));
+	const char __user *mnt_user = (const char __user *)(unsigned long)cmd.arg;
+
+	ret = strncpy_from_user(mnt, mnt_user, sizeof(mnt));
 	if (ret < 0) {
 		pr_err("nuke ext4 copy mnt failed: %ld\n", ret);
 		return -EFAULT; // 或者 return ret;

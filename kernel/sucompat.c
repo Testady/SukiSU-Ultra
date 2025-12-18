@@ -361,11 +361,11 @@ int ksu_handle_stat(int *dfd, struct filename **filename, int *flags)
 #else
 int ksu_handle_stat(int *dfd, const char __user **filename_user, int *flags)
 {
+	char path[sizeof(su_path) + 1] = { 0 };
+	
 	if (unlikely(!filename_user)) {
 		return 0;
 	}
-
-	char path[sizeof(su_path) + 1] = { 0 };
 
 	ksu_strncpy_from_user_nofault(path, *filename_user, sizeof(path));
 

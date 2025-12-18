@@ -18,6 +18,7 @@
 #include <linux/mm.h>
 #include <linux/mutex.h>
 #include <linux/spinlock.h>
+#include <linux/ktime.h>
 
 #include "sulog.h"
 #include "klog.h"
@@ -67,6 +68,8 @@ static void get_timestamp(char *buf, size_t len)
 
 static void ksu_get_cmdline(char *full_comm, const char *comm, size_t buf_len)
 {
+	int i,n;
+
 	if (!full_comm || buf_len <= 0)
 		return;
 
@@ -85,13 +88,13 @@ static void ksu_get_cmdline(char *full_comm, const char *comm, size_t buf_len)
 		return;
 	}
 
-	int n = get_cmdline(current, full_comm, buf_len);
+	n = get_cmdline(current, full_comm, buf_len);
 	if (n <= 0) {
 		KSU_STRSCPY(full_comm, current->comm, buf_len);
 		return;
 	}
 
-	for (int i = 0; i < n && i < buf_len - 1; i++) {
+	for (i = 0; i < n && i < buf_len - 1; i++) {
 		if (full_comm[i] == '\0')
 			full_comm[i] = ' ';
 	}
@@ -134,7 +137,7 @@ static bool dedup_should_print(uid_t uid, u8 type, const char *content,
 		.type = type,
 	};
 	u64 now = ktime_get_ns();
-	u64 delta_ns = DEDUP_SECS * NSEC_PER_SEC;
+	u64 delta_ns = (u64)DEDUP_SECS * (u64)NSEC_PER_SEC;
 
 	u32 idx = key.crc & (SULOG_COMM_LEN - 1);
 	spin_lock(&dedup_lock);
