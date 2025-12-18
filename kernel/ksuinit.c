@@ -19,11 +19,11 @@
 #include "throne_tracker.h"
 #ifdef CONFIG_KSU_SYSCALL_HOOK
 #include "syscall_handler.h"
-#endif // #ifndef CONFIG_KSU_SUSFS
+#endif
 #if defined(CONFIG_KSU_MANUAL_HOOK) || defined(CONFIG_KSU_SUSFS)
 #include "setuid_hook.h"
 #include "sucompat.h"
-#endif
+#endif // #ifndef CONFIG_KSU_SUSFS
 #include "ksud.h"
 #include "supercalls.h"
 #include "ksu.h"

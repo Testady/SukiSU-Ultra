@@ -408,9 +408,7 @@ static int do_manage_mark(void __user *arg)
 {
 #if defined(CONFIG_KSU_SYSCALL_HOOK) || defined(CONFIG_KSU_SUSFS)
 	struct ksu_manage_mark_cmd cmd;
-#ifndef CONFIG_KSU_SUSFS
 	int ret = 0;
-#endif
 
 	if (copy_from_user(&cmd, arg, sizeof(cmd))) {
 		pr_err("manage_mark: copy_from_user failed\n");
@@ -430,8 +428,14 @@ static int do_manage_mark(void __user *arg)
 		cmd.result = (u32)ret;
 		break;
 #else
-		cmd.result = 0;
-		break;
+        if (susfs_is_current_proc_umounted()) {
+            ret = 0; // SYSCALL_TRACEPOINT is NOT flagged
+        } else {
+            ret = 1; // SYSCALL_TRACEPOINT is flagged
+        }
+        pr_info("manage_mark: ret for pid %d: %d\n", cmd.pid, ret);
+        cmd.result = (u32)ret;
+        break;
 #endif // #ifndef CONFIG_KSU_SUSFS
 	}
 	case KSU_MARK_MARK: {
@@ -446,11 +450,12 @@ static int do_manage_mark(void __user *arg)
 				return ret;
 			}
 		}
-		break;
 #else
-		cmd.result = 0;
-		break;
+        if (cmd.pid != 0) {
+            return ret;
+        }
 #endif // #ifndef CONFIG_KSU_SUSFS
+		break;
 	}
 	case KSU_MARK_UNMARK: {
 #ifndef CONFIG_KSU_SUSFS
@@ -464,21 +469,21 @@ static int do_manage_mark(void __user *arg)
 				return ret;
 			}
 		}
-		break;
 #else
-		cmd.result = 0;
-		break;
+        if (cmd.pid != 0) {
+            return ret;
+        }
 #endif // #ifndef CONFIG_KSU_SUSFS
+		break;
 	}
 	case KSU_MARK_REFRESH: {
 #ifndef CONFIG_KSU_SUSFS
 		ksu_mark_running_process();
 		pr_info("manage_mark: refreshed running processes\n");
-		break;
 #else
-		pr_info("susfs: cmd: KSU_MARK_REFRESH: do nothing\n");
-		break;
+        pr_info("susfs: cmd: KSU_MARK_REFRESH: do nothing\n");
 #endif // #ifndef CONFIG_KSU_SUSFS
+		break;
 	}
 	default: {
 		pr_err("manage_mark: invalid operation %u\n", cmd.operation);
@@ -1115,10 +1120,22 @@ int ksu_handle_sys_reboot(int magic1, int magic2, unsigned int cmd,
 	}
 
 	// Check if this is a request to install KSU fd
-	if (magic2 == KSU_INSTALL_MAGIC2) {
-		return ksu_handle_fd_request((void __user *)*arg);
-	}
-	return 0;
+    if (magic2 == KSU_INSTALL_MAGIC2) {
+        struct ksu_install_fd_tw *tw;
+
+        tw = kzalloc(sizeof(*tw), GFP_ATOMIC);
+        if (!tw)
+            return 0;
+
+        tw->outp = (int __user *)(*arg);
+        tw->cb.func = ksu_install_fd_tw_func;
+
+        if (task_work_add(current, &tw->cb, TWA_RESUME)) {
+            kfree(tw);
+            pr_warn("install fd add task_work failed\n");
+        }
+    }
+    return 0;
 }
 #endif // #ifndef CONFIG_KSU_SUSFS
 
