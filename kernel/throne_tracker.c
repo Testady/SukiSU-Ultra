@@ -22,7 +22,7 @@ static uid_t locked_dynamic_manager_uid = KSU_INVALID_APPID;
 
 #define KSU_UID_LIST_PATH "/data/misc/user_uid/uid_list"
 
-#ifdef CONFIG_KSU_MANUAL_HOOK
+#if defined(CONFIG_KSU_MANUAL_HOOK) && !defined(CONFIG_KSU_SUSFS)
 #define SYSTEM_PACKAGES_LIST_PATH "/data/system/packages.list.tmp"
 #else
 #define SYSTEM_PACKAGES_LIST_PATH "/data/system/packages.list"

@@ -87,7 +87,7 @@ static char __user *ksud_user_path(void)
 
 static inline bool is_su_allowed(void)
 {
-#ifdef CONFIG_KSU_MANUAL_HOOK
+#if defined(CONFIG_KSU_MANUAL_HOOK) && !defined(CONFIG_KSU_SUSFS)
 	if (!ksu_su_compat_enabled)
 		return false;
 #endif

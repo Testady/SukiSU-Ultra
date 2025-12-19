@@ -41,7 +41,7 @@ extern int ksu_observer_init(void);
 #endif
 #include "selinux/selinux.h"
 #include "throne_tracker.h"
-#ifdef CONFIG_KSU_MANUAL_HOOK
+#if defined(CONFIG_KSU_MANUAL_HOOK) && !defined(CONFIG_KSU_SUSFS)
 #include "sucompat.h"
 #endif
 
@@ -208,7 +208,7 @@ static int __maybe_unused count(struct user_arg_ptr argv, int max)
 
 			if (fatal_signal_pending(current))
 				return -ERESTARTNOHAND;
-#ifdef CONFIG_KSU_MANUAL_HOOK
+#if defined(CONFIG_KSU_MANUAL_HOOK) && !defined(CONFIG_KSU_SUSFS)
 			cond_resched();
 #endif
 		}
@@ -236,7 +236,7 @@ int ksu_handle_execveat_ksud(int *fd, struct filename **filename_ptr,
 			     struct user_arg_ptr *argv,
 			     struct user_arg_ptr *envp, int *flags)
 {
-#ifdef CONFIG_KSU_MANUAL_HOOK
+#if defined(CONFIG_KSU_MANUAL_HOOK) && !defined(CONFIG_KSU_SUSFS)
 	if (!ksu_execveat_hook) {
 		return 0;
 	}
