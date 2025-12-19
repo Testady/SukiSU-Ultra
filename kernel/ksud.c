@@ -490,7 +490,7 @@ int ksu_handle_vfs_read(struct file **file_ptr, char __user **buf_ptr,
 int ksu_handle_sys_read(unsigned int fd, char __user **buf_ptr,
 			size_t *count_ptr)
 {
-#ifdef CONFIG_KSU_SYSCALL_HOOK
+#if defined(CONFIG_KSU_SYSCALL_HOOK) || defined(CONFIG_KSU_SUSFS)
 	struct file *file = fget(fd);
 	if (!file) {
 		return 0;
