@@ -23,10 +23,6 @@ extern bool ksu_uid_scanner_enabled;
 #define DYNAMIC_MANAGER_OP_GET 1
 #define DYNAMIC_MANAGER_OP_CLEAR 2
 
-#define UID_SCANNER_OP_GET_STATUS 0
-#define UID_SCANNER_OP_TOGGLE 1
-#define UID_SCANNER_OP_CLEAR_ENV 2
-
 struct dynamic_manager_user_config {
 	unsigned int operation;
 	unsigned int size;

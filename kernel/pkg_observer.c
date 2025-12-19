@@ -9,7 +9,6 @@
 #include "klog.h" // IWYU pragma: keep
 #include "ksu.h"
 #include "throne_tracker.h"
-#include "throne_comm.h"
 
 #define MASK_SYSTEM (FS_CREATE | FS_MOVE | FS_EVENT_ON_CHILD)
 
@@ -33,9 +32,6 @@ static KSU_DECL_FSNOTIFY_OPS(ksu_handle_inode_event)
 	if (ksu_fname_len(file_name) == 13 &&
 	    !memcmp(ksu_fname_arg(file_name), "packages.list", 13)) {
 		pr_info("packages.list detected: %d\n", mask);
-		if (ksu_uid_scanner_enabled) {
-			ksu_request_userspace_scan();
-		}
 		track_throne(false);
 	}
 	return 0;

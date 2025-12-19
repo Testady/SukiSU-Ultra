@@ -21,7 +21,6 @@ ksu_obj-y += selinux/sepolicy.o
 ksu_obj-y += selinux/rules.o
 
 ksu_obj-y += dynamic_manager.o
-ksu_obj-y += throne_comm.o
 ksu_obj-y += sulog.o
 ksu_obj-$(CONFIG_KSU_MANUAL_SU) += manual_su.o
 obj-$(CONFIG_KPM) += kpm/
