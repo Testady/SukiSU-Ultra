@@ -33,11 +33,6 @@
 #define EXPECTED_HASH_NEKO                                                     \
 	"946b0557e450a6430a0ba6b6bccee5bc12953ec8735d55e26139b0ec12303b21"
 
-// Dynamic Sign
-#define EXPECTED_SIZE_OTHER 0x300
-#define EXPECTED_HASH_OTHER                                                    \
-	"0000000000000000000000000000000000000000000000000000000000000000"
-
 typedef struct {
 	u32 size;
 	const char *sha256;

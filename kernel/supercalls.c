@@ -37,7 +37,8 @@
 #include "manager.h"
 #include "selinux/selinux.h"
 #include "file_wrapper.h"
-#include "dynamic_manager.h"
+#include "syscall_hook_manager.h"
+
 #include "sulog.h"
 #ifdef CONFIG_KSU_MANUAL_SU
 #include "manual_su.h"
@@ -131,7 +132,6 @@ static int do_report_event(void __user *arg)
 #if __SULOG_GATE
 			ksu_sulog_init();
 #endif
-			ksu_dynamic_manager_init();
 		}
 		break;
 	}
@@ -741,44 +741,6 @@ static int do_enable_kpm(void __user *arg)
 	return 0;
 }
 
-static int do_dynamic_manager(void __user *arg)
-{
-	struct ksu_dynamic_manager_cmd cmd;
-
-	if (copy_from_user(&cmd, arg, sizeof(cmd))) {
-		pr_err("dynamic_manager: copy_from_user failed\n");
-		return -EFAULT;
-	}
-
-	int ret = ksu_handle_dynamic_manager(&cmd.config);
-	if (ret)
-		return ret;
-
-	if (cmd.config.operation == DYNAMIC_MANAGER_OP_GET &&
-	    copy_to_user(arg, &cmd, sizeof(cmd))) {
-		pr_err("dynamic_manager: copy_to_user failed\n");
-		return -EFAULT;
-	}
-
-	return 0;
-}
-
-static int do_get_managers(void __user *arg)
-{
-	struct ksu_get_managers_cmd cmd;
-
-	int ret = ksu_get_active_managers(&cmd.manager_info);
-	if (ret)
-		return ret;
-
-	if (copy_to_user(arg, &cmd, sizeof(cmd))) {
-		pr_err("get_managers: copy_from_user failed\n");
-		return -EFAULT;
-	}
-
-	return 0;
-}
-
 #ifdef CONFIG_KSU_MANUAL_SU
 static bool system_uid_check(void)
 {
@@ -860,10 +822,6 @@ static const struct ksu_ioctl_cmd_map ksu_ioctl_handlers[] = {
 	KSU_IOCTL(HOOK_TYPE, "GET_HOOK_TYPE", do_get_hook_type,
 		  manager_or_root),
 	KSU_IOCTL(ENABLE_KPM, "GET_ENABLE_KPM", do_enable_kpm, manager_or_root),
-	KSU_IOCTL(DYNAMIC_MANAGER, "SET_DYNAMIC_MANAGER", do_dynamic_manager,
-		  manager_or_root),
-	KSU_IOCTL(GET_MANAGERS, "GET_MANAGERS", do_get_managers,
-		  manager_or_root),
 #ifdef CONFIG_KSU_MANUAL_SU
 	KSU_IOCTL(MANUAL_SU, "MANUAL_SU", do_manual_su, system_uid_check),
 #endif
