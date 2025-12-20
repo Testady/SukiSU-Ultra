@@ -6,12 +6,6 @@
 #include <linux/uidgid.h>
 #include <linux/string.h>
 
-#include "klog.h" // IWYU pragma: keep
-#include "kernel_compat.h"
-#include "ksud.h"
-#include "setuid_hook.h"
-#include "throne_tracker.h"
-
 #if LINUX_VERSION_CODE > KERNEL_VERSION(4, 10, 0) &&                           \
 	defined(CONFIG_KSU_MANUAL_SU)
 #include "manual_su.h"
@@ -42,6 +36,8 @@ static int ksu_key_permission(key_ref_t key_ref, const struct cred *cred,
 #endif
 
 #if defined(CONFIG_KSU_MANUAL_HOOK) && !defined(CONFIG_KSU_SUSFS)
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 8, 0) &&                          \
+     defined(CONFIG_KSU_MANUAL_HOOK))
 static int ksu_inode_rename(struct inode *old_inode, struct dentry *old_dentry,
 			    struct inode *new_inode, struct dentry *new_dentry)
 {
@@ -106,6 +102,7 @@ static int ksu_task_fix_setuid(struct cred *new, const struct cred *old,
 					new->euid.val);
 }
 #endif
+#endif
 
 static struct security_hook_list ksu_hooks[] = {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 10, 0) ||                           \
@@ -113,8 +110,11 @@ static struct security_hook_list ksu_hooks[] = {
 	LSM_HOOK_INIT(key_permission, ksu_key_permission),
 #endif
 #if defined(CONFIG_KSU_MANUAL_HOOK) && !defined(CONFIG_KSU_SUSFS)
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 8, 0) &&                          \
+     defined(CONFIG_KSU_MANUAL_HOOK))
 	LSM_HOOK_INIT(task_fix_setuid, ksu_task_fix_setuid),
 	LSM_HOOK_INIT(inode_rename, ksu_inode_rename),
+#endif
 #endif
 #if LINUX_VERSION_CODE > KERNEL_VERSION(4, 10, 0) &&                           \
 	defined(CONFIG_KSU_MANUAL_SU)
