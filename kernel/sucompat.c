@@ -146,6 +146,10 @@ static int ksu_sucompat_user_common(const char __user **filename_user,
 	if (memcmp(path, su_path, sizeof(su_path)))
 		return 0;
 
+#if __SULOG_GATE
+	ksu_sulog_report_syscall(current_uid().val, NULL, syscall_name, path);
+#endif
+
 	if (escalate) {
 		pr_info("%s su found\n", syscall_name);
 		*filename_user = ksud_user_path();
@@ -190,19 +194,11 @@ static int do_execve_sucompat_for_kp(const char __user **filename_user)
 int ksu_handle_faccessat(int *dfd, const char __user **filename_user, int *mode,
 			 int *__unused_flags)
 {
-#if __SULOG_GATE
-	ksu_sulog_report_syscall(current_uid().val, NULL, "faccessat",
-				 is_su_allowed(filename_user));
-#endif
 	return ksu_sucompat_user_common(filename_user, "faccessat", false);
 }
 
 int ksu_handle_stat(int *dfd, const char __user **filename_user, int *flags)
 {
-#if __SULOG_GATE
-	ksu_sulog_report_syscall(current_uid().val, NULL, "newfstatat",
-				 is_su_allowed(filename_user));
-#endif
 	return ksu_sucompat_user_common(filename_user, "newfstatat", false);
 }
 
@@ -211,9 +207,8 @@ int ksu_handle_execve_sucompat(int *fd, const char __user **filename_user,
 			       int *__never_use_flags)
 {
 #if __SULOG_GATE
-	ksu_sulog_report_syscall(current_uid().val, NULL, "execve", su);
-	ksu_sulog_report_su_attempt(current_uid().val, NULL, su,
-				    is_su_allowed(filename_user));
+	ksu_sulog_report_su_attempt(current_uid().val, NULL, su_path,
+				    is_su_allowed());
 #endif
 	return handle_execve_sucompat(filename_user);
 }
@@ -236,9 +231,9 @@ int ksu_handle_execveat_sucompat(int *fd, struct filename **filename_ptr,
 		return 0;
 
 #if __SULOG_GATE
-	ksu_sulog_report_syscall(current_uid().val, NULL, "execveat", su);
-	ksu_sulog_report_su_attempt(current_uid().val, NULL, su,
-				    is_su_allowed(filename_ptr));
+	ksu_sulog_report_syscall(current_uid().val, NULL, "execveat", su_path);
+	ksu_sulog_report_su_attempt(current_uid().val, NULL, su_path,
+				    is_su_allowed());
 #endif
 
 	pr_info("do_execveat_common su found\n");
