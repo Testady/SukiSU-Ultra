@@ -4,6 +4,7 @@
 #include <linux/version.h>
 #include <linux/sched.h>
 #include <linux/thread_info.h>
+#include <asm/ptrace.h>
 #include <linux/init.h>
 #include <linux/binfmts.h>
 #include <linux/tty.h>
@@ -42,5 +43,7 @@ static inline void ksu_clear_task_tracepoint_flag(struct task_struct *t)
 }
 
 void ksu_clear_task_tracepoint_flag_if_needed(struct task_struct *t);
+
+int hook_trace_sys_enter();
 
 #endif
