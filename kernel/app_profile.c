@@ -212,7 +212,7 @@ void escape_with_root_profile(void)
 	for_each_thread (current, t) {
 		ksu_set_task_tracepoint_flag(t);
 	}
-#endif // #ifndef CONFIG_KSU_SUSFS
+#endif
 
 	setup_mount_ns(profile->namespaces);
 }

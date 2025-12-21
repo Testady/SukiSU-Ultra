@@ -25,6 +25,7 @@
 #include "allowlist.h"
 #include "manager.h"
 #include "kernel_compat.h"
+#include "su_mount_ns.h"
 #ifdef CONFIG_KSU_SYSCALL_HOOK
 #include "syscall_handler.h"
 #endif
