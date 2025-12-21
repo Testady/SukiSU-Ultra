@@ -37,7 +37,6 @@
 #include "manager.h"
 #include "selinux/selinux.h"
 #include "file_wrapper.h"
-#include "syscall_hook_manager.h"
 
 #include "sulog.h"
 #ifdef CONFIG_KSU_MANUAL_SU

@@ -33,6 +33,7 @@ static inline int endswith(const char *s, const char *t)
 		return 1;
 	return strcmp(s + slen - tlen, t);
 }
+#endif
 
 extern struct cred *ksu_cred;
 
