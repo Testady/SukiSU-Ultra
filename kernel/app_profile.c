@@ -230,31 +230,52 @@ void escape_to_root_for_init(void)
 #define DEVPTS_SUPER_MAGIC 0x1cd1
 #endif
 
-static void disable_seccomp_for_target_task(struct task_struct *tsk)
+static void disable_seccomp_for_task(struct task_struct *tsk)
 {
-	if (!tsk)
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0) ||                          \
+     defined(KSU_OPTIONAL_SECCOMP_FILTER_RELEASE))
+	struct task_struct *fake;
+	fake = kmalloc(sizeof(*fake), GFP_ATOMIC);
+	if (!fake) {
+		pr_err("%s: cannot allocate fake struct!\n", __func__);
 		return;
-
-	assert_spin_locked(&tsk->sighand->siglock);
-
-#ifdef CONFIG_SECCOMP
-	if (tsk->seccomp.mode == SECCOMP_MODE_DISABLED && !tsk->seccomp.filter)
-		return;
+	}
 #endif
+
+	// Refer to kernel/seccomp.c: seccomp_set_mode_strict
+	// When disabling Seccomp, ensure that tsk->sighand->siglock is held during the operation.
+	spin_lock_irq(&tsk->sighand->siglock);
 	// disable seccomp
-	clear_tsk_thread_flag(tsk, TIF_SECCOMP);
+    clear_tsk_thread_flag(tsk, TIF_SECCOMP);
 
-#ifdef CONFIG_SECCOMP
-	// Skip releasing filter ref when its already NULL.
-	if (tsk->seccomp.filter == NULL)
-		return;
-
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0) ||                          \
+     defined(KSU_OPTIONAL_SECCOMP_FILTER_RELEASE))
+	memcpy(fake, tsk, sizeof(*fake));
+#endif
 	tsk->seccomp.mode = 0;
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 9, 0) &&                           \
+     !defined(KSU_OPTIONAL_SECCOMP_FILTER_RELEASE))
+	// put_seccomp_filter is allowed while we holding sighand
+	put_seccomp_filter(tsk);
+#endif
+	tsk->seccomp.filter = NULL;
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 7, 0) ||                          \
      defined(KSU_OPTIONAL_SECCOMP_FILTER_CNT))
 	atomic_set(&tsk->seccomp.filter_count, 0);
 #endif
-	tsk->seccomp.filter = NULL;
+	spin_unlock_irq(&tsk->sighand->siglock);
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0) ||                          \
+     defined(KSU_OPTIONAL_SECCOMP_FILTER_RELEASE))
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 11, 0)
+	// https://github.com/torvalds/linux/commit/bfafe5efa9754ebc991750da0bcca2a6694f3ed3#diff-45eb79a57536d8eccfc1436932f093eb5c0b60d9361c39edb46581ad313e8987R576-R577
+	fake->flags |= PF_EXITING;
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(5, 11, 0)
+	// https://github.com/torvalds/linux/commit/0d8315dddd2899f519fe1ca3d4d5cdaf44ea421e#diff-45eb79a57536d8eccfc1436932f093eb5c0b60d9361c39edb46581ad313e8987R556-R558
+	fake->sighand = NULL;
+#endif
+	seccomp_filter_release(fake);
+	kfree(fake);
 #endif
 }
 
@@ -365,9 +386,7 @@ void escape_to_root_for_cmd_su(uid_t target_uid, pid_t target_pid)
 	task_unlock(target_task);
 
 	if (target_task->sighand) {
-		spin_lock_irqsave(&target_task->sighand->siglock, flags);
-		disable_seccomp_for_target_task(target_task);
-		spin_unlock_irqrestore(&target_task->sighand->siglock, flags);
+		disable_seccomp_for_task(target_task);
 	}
 
 	setup_selinux(profile->selinux_domain);
