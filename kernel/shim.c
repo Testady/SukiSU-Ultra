@@ -22,18 +22,14 @@
 #include "lsm_hook.c"
 
 #ifdef CONFIG_KSU_SYSCALL_HOOK
-#include "pkg_observer.c"
 #include "kp_hook.c"
 #include "kp_util.c"
 #include "syscall_handler.c"
 #endif
 
-#ifdef CONFIG_KSU_SUSFS
-#include "pkg_observer.c"
-#endif
-
-#if (defined(CONFIG_KSU_MANUAL_HOOK) &&                                      \
-       LINUX_VERSION_CODE >= KERNEL_VERSION(6, 8, 0))
+#if defined(CONFIG_KSU_SYSCALL_HOOK) || defined(CONFIG_KSU_SUSFS) ||          \
+	(LINUX_VERSION_CODE >= KERNEL_VERSION(6, 8, 0) &&                      \
+	 defined(CONFIG_KSU_MANUAL_HOOK))
 // + ksu_handle_setresuid hook for 6.8+
 #include "pkg_observer.c"
 #endif
