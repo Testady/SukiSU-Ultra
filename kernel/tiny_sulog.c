@@ -1,3 +1,16 @@
+#include <linux/string.h>
+#include <linux/uaccess.h>
+#include <linux/printk.h>
+#include <linux/cred.h>
+#include <linux/fs.h>
+#include <linux/uaccess.h>
+#include <linux/file.h>
+#include <linux/mm.h>
+#include <linux/slab.h>
+#include <linux/binfmts.h>
+
+#include "klog.h" // IWYU pragma: keep
+
 // half assed ringbuffer
 // 8 bytes
 struct sulog_entry {

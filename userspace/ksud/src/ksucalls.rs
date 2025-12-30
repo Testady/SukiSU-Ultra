@@ -9,11 +9,6 @@ const EVENT_POST_FS_DATA: u32 = 1;
 const EVENT_BOOT_COMPLETED: u32 = 2;
 const EVENT_MODULE_MOUNTED: u32 = 3;
 
-const GET_SULOG_DUMP_V2: u32 = 10010;
-const SULOG_ENTRY_MAX: usize = 250;
-const SULOG_ENTRY_SIZE: usize = 8;
-const SULOG_BUFSIZ: usize = SULOG_ENTRY_MAX * SULOG_ENTRY_SIZE;
-
 const K: u32 = b'K' as u32;
 const KSU_IOCTL_GRANT_ROOT: i32 = _IO(K, 1);
 const KSU_IOCTL_GET_INFO: i32 = _IOR::<()>(K, 2);
@@ -332,6 +327,10 @@ pub fn umount_list_del(path: &str) -> anyhow::Result<()> {
 
 const KSU_IOCTL_LIST_TRY_UMOUNT: i32 = _IOWR::<()>(K, 200);
 
+const SULOG_ENTRY_MAX: usize = 250;
+const SULOG_ENTRY_SIZE: usize = 8;
+const SULOG_BUFSIZ: usize = SULOG_ENTRY_MAX * SULOG_ENTRY_SIZE;
+
 #[repr(C)]
 #[derive(Clone, Copy, Default)]
 struct ListTryUmountCmd {
@@ -354,6 +353,8 @@ pub fn umount_list_list() -> anyhow::Result<String> {
     let result = String::from_utf8_lossy(&buffer[..len]).to_string();
     Ok(result)
 }
+
+const KSU_IOCTL_GET_SULOG_DUMP: i32 = _IOWR::<()>(K, 201);
 
 #[repr(C)]
 struct SulogEntryRcvPtr {
@@ -378,7 +379,7 @@ pub fn dump_sulog_to_file() -> anyhow::Result<()> {
         uptime_ptr: 0,
     };
     // pointer-to-pointer required by kernel handler
-    let mut recv_ptr: *mut SulogEntryRcvPtr = &mut recv;
+    let recv_ptr: *mut SulogEntryRcvPtr = &mut recv;
 
     unsafe {
         (*recv_ptr).index_ptr = (&mut index as *mut u8) as u64;
@@ -386,16 +387,10 @@ pub fn dump_sulog_to_file() -> anyhow::Result<()> {
         (*recv_ptr).uptime_ptr = (&mut uptime as *mut u32) as u64;
 
         // Call reboot syscall with special magic to request sulog dump
-        let ret = libc::syscall(
-            libc::SYS_reboot,
-            KSU_INSTALL_MAGIC1,
-            GET_SULOG_DUMP_V2,
-            0usize,
-            &mut recv_ptr as *mut *mut SulogEntryRcvPtr,
-        );
-
-        if ret != 0 {
-            return Err(std::io::Error::last_os_error().into());
+        // Use ioctl to request sulog dump from kernel
+        let res = ksuctl(KSU_IOCTL_GET_SULOG_DUMP, &mut recv as *mut SulogEntryRcvPtr);
+        if let Err(e) = res {
+            return Err(e.into());
         }
     }
 

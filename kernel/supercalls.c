@@ -602,6 +602,20 @@ static int list_try_umount(void __user *arg)
     return ret;
 }
 
+static int do_get_sulog_dump(void __user *arg)
+{
+    int ret;
+
+    if (current_uid().val != 0)
+		return -EFAULT;
+
+    ret = send_sulog_dump(arg);
+    if (ret)
+        return -EFAULT;
+
+    return 0;
+}
+
 // 100. GET_FULL_VERSION - Get full version string
 static int do_get_full_version(void __user *arg)
 {
@@ -803,6 +817,10 @@ static const struct ksu_ioctl_cmd_map ksu_ioctl_handlers[] = {
       .name = "LIST_TRY_UMOUNT",
       .handler = list_try_umount,
       .perm_check = manager_or_root },
+    { .cmd = KSU_IOCTL_GET_SULOG_DUMP,
+      .name = "GET_SULOG_DUMP",
+      .handler = do_get_sulog_dump,
+      .perm_check = only_root },
     { .cmd = 0, .name = NULL, .handler = NULL, .perm_check = NULL } // Sentinel
 };
 
@@ -862,20 +880,6 @@ int ksu_handle_sys_reboot(int magic1, int magic2, unsigned int cmd,
     }
 
     // extensions
-    u64 reply = (u64)*arg;
-
-    if (magic2 == GET_SULOG_DUMP_V2) {
-		// only root is allowed for this command
-		if (current_uid().val != 0)
-			return 0;
-
-		int ret = send_sulog_dump(*arg);
-		if (ret)
-			return 0;
-
-		if (copy_to_user((void __user *)*arg, &reply, sizeof(reply) ))
-			return 0;
-	}
 
     return 0;
 }
