@@ -1013,21 +1013,18 @@ int ksu_handle_sys_reboot(int magic1, int magic2, unsigned int cmd,
 	}
 
 	// Check if this is a request to install KSU fd
-    if (magic2 == KSU_INSTALL_MAGIC2) {
-        struct ksu_install_fd_tw *tw;
+    // Dereference **arg.. with IS_ERR check.
+	void __user *argp = (void __user *)*arg;
+	if (IS_ERR(argp)) {
+		pr_err("Failed to deref user arg, err: %lu\n", PTR_ERR(argp));
+		return 0;
+	}
 
-        tw = kzalloc(sizeof(*tw), GFP_ATOMIC);
-        if (!tw)
-            return 0;
-
-        tw->outp = (int __user *)(*arg);
-        tw->cb.func = ksu_install_fd_tw_func;
-
-        if (task_work_add(current, &tw->cb, TWA_RESUME)) {
-            kfree(tw);
-            pr_warn("install fd add task_work failed\n");
-        }
-    }
+	// Check if this is a request to install KSU fd
+	if (magic2 == KSU_INSTALL_MAGIC2) {
+		return ksu_handle_fd_request(argp);
+	}
+	
     return 0;
 }
 #endif // #ifndef CONFIG_KSU_SUSFS
