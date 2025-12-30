@@ -363,7 +363,7 @@ struct SulogEntryRcvPtr {
     uptime_ptr: u64,
 }
 
-/// Fetch sulog from kernel and save to `/data/adb/ksu/log/sulog.log` (rotate to .old)
+/// Fetch sulog from kernel and save to `/data/adb/ksu/log/sulog.log`
 pub fn dump_sulog_to_file() -> anyhow::Result<()> {
     use std::io::Write;
 
@@ -386,7 +386,6 @@ pub fn dump_sulog_to_file() -> anyhow::Result<()> {
         (*recv_ptr).buf_ptr = buffer.as_mut_ptr() as u64;
         (*recv_ptr).uptime_ptr = (&mut uptime as *mut u32) as u64;
 
-        // Call reboot syscall with special magic to request sulog dump
         // Use ioctl to request sulog dump from kernel
         let res = ksuctl(KSU_IOCTL_GET_SULOG_DUMP, &mut recv as *mut SulogEntryRcvPtr);
         if let Err(e) = res {
@@ -412,18 +411,19 @@ pub fn dump_sulog_to_file() -> anyhow::Result<()> {
         lines.push(format!("uptime_s={} uid={} sym={}\n", s_time, uid, sym_char));
     }
 
-    // Prepare directory and rotation
+    // Prepare directory
     let log_dir = "/data/adb/ksu/log";
     let log_path = format!("{}/sulog.log", log_dir);
-    let old_path = format!("{}/sulog.log.old", log_path);
 
-    std::fs::create_dir_all(log_dir)?;
-    if std::path::Path::new(&log_path).exists() {
-        // Remove previous .old then rename
-        let _ = std::fs::remove_file(&old_path);
-        std::fs::rename(&log_path, &old_path)?;
+    // Ensure log_dir is a directory (remove if it's a file)
+    if std::path::Path::new(log_dir).exists() {
+        if !std::path::Path::new(log_dir).is_dir() {
+            std::fs::remove_file(log_dir)?;
+        }
     }
+    std::fs::create_dir_all(log_dir)?;
 
+    // Directly overwrite the log file
     let mut file = std::fs::File::create(&log_path)?;
     for line in lines {
         file.write_all(line.as_bytes())?;

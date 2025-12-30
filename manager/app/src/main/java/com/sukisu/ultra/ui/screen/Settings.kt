@@ -625,15 +625,8 @@ fun SettingPager(
                             )
                         },
                         onClick = {
-                            scope.launch {
-                                loadingDialog.withLoading {
-                                    withContext(Dispatchers.IO) {
-                                        execKsud("sulog dump", true)
-                                    }
-                                }
-                                navigator.navigate(SulogScreenDestination) {
-                                    launchSingleTop = true
-                                }
+                            navigator.navigate(SulogScreenDestination) {
+                                launchSingleTop = true
                             }
                         }
                     )

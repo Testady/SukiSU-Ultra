@@ -1,5 +1,6 @@
 package com.sukisu.ultra.ui.screen
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.add
@@ -25,19 +26,13 @@ import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import com.sukisu.ultra.R
-import com.sukisu.ultra.ui.util.getRootShell
-import com.sukisu.ultra.ui.util.runCmd
-import com.sukisu.ultra.ui.util.execKsud
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeoutOrNull
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Text
@@ -50,14 +45,17 @@ import top.yukonga.miuix.kmp.icon.icons.useful.Back
 import top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
+import top.yukonga.miuix.kmp.basic.Card
+import androidx.compose.foundation.layout.Column
+import com.sukisu.ultra.ui.util.retrieveSulogLogs
+import com.sukisu.ultra.ui.util.streamFile
 
 @Composable
 @Destination<RootGraph>
 fun SulogScreen(navigator: DestinationsNavigator) {
     val scrollBehavior = MiuixScrollBehavior()
-    var content by remember { mutableStateOf("") }
-    var lines by remember { mutableStateOf(listOf<String>()) }
-    var isRefreshing by remember { mutableStateOf(false) }
+    data class SulogEntry(val uptime: Int, val uid: Int, val sym: Char, val raw: String)
+    var entries by remember { mutableStateOf(listOf<SulogEntry>()) }
     val hazeState = remember { HazeState() }
     val hazeStyle = HazeStyle(
         backgroundColor = colorScheme.surface,
@@ -65,26 +63,48 @@ fun SulogScreen(navigator: DestinationsNavigator) {
     )
 
     LaunchedEffect(true) {
+        val regex = Regex("""uptime_s=(\d+)\s+uid=(\d+)\s+sym=(.)""")
         while (isActive) {
-            isRefreshing = true
-            // Try to dump with timeout to avoid hanging
-            withContext(Dispatchers.IO) {
-                try {
-                    withTimeoutOrNull(5000) {
-                        execKsud("sulog dump", true)
-                    }
-                } catch (_: Exception) {
+            // trigger kernel dump and give it a moment
+            retrieveSulogLogs()
+            delay(1000)
+
+            // stream file (incremental)
+            val streamed = streamFile("/data/adb/ksu/log/sulog.log")
+            val allLines = if (streamed.isEmpty()) emptyList() else streamed.takeLast(2000)
+
+            // parse and dedupe new lines, keep newest-first merge with existing entries
+            val parsed = mutableListOf<SulogEntry>()
+            val seen = LinkedHashSet<String>()
+            for (ln in allLines) {
+                val lineTrim = ln.trim()
+                if (lineTrim.isEmpty()) continue
+                val m = regex.find(lineTrim)
+                val entry = if (m != null) {
+                    val uptime = m.groupValues[1].toIntOrNull() ?: 0
+                    val uid = m.groupValues[2].toIntOrNull() ?: 0
+                    val sym = m.groupValues[3].firstOrNull() ?: '?'
+                    if (uptime == 0 && uid == 0 && sym == '?') null else SulogEntry(uptime, uid, sym, lineTrim)
+                } else {
+                    SulogEntry(0, 0, '?', lineTrim)
+                }
+                if (entry != null) {
+                    val key = "${entry.uptime}|${entry.uid}|${entry.sym}|${entry.raw}"
+                    if (seen.add(key)) parsed.add(entry)
                 }
             }
-            val text = withContext(Dispatchers.IO) {
-                runCmd(getRootShell(), "cat /data/adb/ksu/log/sulog.log || true")
+
+            // merge: prefer parsed (new) over existing, preserve newest-first order, cap size
+            val map = linkedMapOf<String, SulogEntry>()
+            parsed.forEach { map["${it.uptime}|${it.uid}|${it.sym}|${it.raw}"] = it }
+            entries.forEach { key -> 
+                val k = "${key.uptime}|${key.uid}|${key.sym}|${key.raw}"
+                if (!map.containsKey(k)) map[k] = key
             }
-            content = text.ifBlank { "No logs" }
-            // split into lines and cap to last 2000 lines to avoid UI freeze
-            val allLines = content.lines()
-            lines = if (allLines.size > 2000) allLines.takeLast(2000) else allLines
-            isRefreshing = false
-            delay(5000)
+            val combined = map.values.toList()
+            entries = combined
+            
+            delay(4000)
         }
     }
 
@@ -123,12 +143,40 @@ fun SulogScreen(navigator: DestinationsNavigator) {
             contentPadding = innerPadding,
             overscrollEffect = null,
         ) {
-            items(lines) { line ->
-                Text(
-                    text = line,
-                    modifier = Modifier.fillMaxWidth(),
-                )
+            // default sort: type priority (i > x > $) then newest-first within each type
+            val priority = { c: Char ->
+                when (c) {
+                    'i' -> 0
+                    'x' -> 1
+                    '$' -> 2
+                    else -> 3
+                }
+            }
+            val displayed = entries.sortedWith(compareBy({ priority(it.sym) }, { -it.uptime }))
+            items(displayed) { e ->
+                Card(modifier = Modifier.padding(vertical = 6.dp)) {
+                    Column(modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp)) {
+                        val bgDesc = when (e.sym) {
+                            '$' -> stringResource(id = R.string.sulog_blocked_label)
+                            'x' -> stringResource(id = R.string.sulog_allowed_label)
+                            'i' -> stringResource(id = R.string.sulog_ioctl_label)
+                            else -> stringResource(id = R.string.sulog_other_label)
+                        }
+                        Text(text = "$bgDesc • uid=${e.uid} • uptime=${formatDuration(e.uptime)}")
+                    }
+                }
             }
         }
     }
+}
+
+@SuppressLint("DefaultLocale")
+private fun formatDuration(sec: Int): String {
+    if (sec <= 0) return "0s"
+    val h = sec / 3600
+    val m = (sec % 3600) / 60
+    val s = sec % 60
+    return if (h > 0) String.format("%dh%02dm%02ds", h, m, s) else if (m > 0) String.format("%dm%02ds", m, s) else String.format("%ds", s)
 }
