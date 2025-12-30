@@ -33,8 +33,6 @@
 #include "kernel_umount.h"
 #include "kernel_compat.h"
 
-#include "sulog.h"
-
 #ifdef CONFIG_KSU_SUSFS
 static inline bool is_zygote_isolated_service_uid(uid_t uid)
 {
@@ -156,10 +154,6 @@ int ksu_handle_setuid_common(uid_t new_uid, uid_t old_uid, uid_t new_euid)
 #endif
 	}
 
-#if __SULOG_GATE
-	ksu_sulog_report_syscall(new_uid, NULL, "setuid", NULL);
-#endif
-
 	// Handle kernel umount
 	ksu_handle_umount(old_uid, new_uid);
 
@@ -261,10 +255,6 @@ int ksu_handle_setresuid(uid_t ruid, uid_t euid, uid_t suid)
 #endif
 
 	return 0;
-
-#if __SULOG_GATE
-	ksu_sulog_report_syscall(new_uid, NULL, "setuid", NULL);
-#endif
 
 do_umount:
 	// Handle kernel umount
