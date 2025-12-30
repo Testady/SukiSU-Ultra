@@ -190,8 +190,6 @@
     <string name="default_signature">SukiSU</string>
     <string name="dynamic_managerature">Dynamic</string>
     <string name="signature_index">签名 %1$d</string>
-    <string name="settings_disable_sulog"> 禁用超级用户日志 </string>
-    <string name="settings_disable_sulog_summary">禁用 KernelSU 超级用户访问记录</string>
     <!-- Log Viewer -->
     <string name="log_viewer_title">日志查看器</string>
     <string name="log_viewer_back">返回</string>

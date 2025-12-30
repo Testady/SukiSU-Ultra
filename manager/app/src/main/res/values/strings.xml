@@ -195,8 +195,6 @@
     <string name="default_signature">SukiSU</string>
     <string name="dynamic_managerature">Dynamic</string>
     <string name="signature_index">Signature %1$d</string>
-    <string name="settings_disable_sulog">Disable superuser logging</string>
-    <string name="settings_disable_sulog_summary">Disable KernelSU superuser access logging</string>
     <!-- Log Viewer -->
     <string name="log_viewer_title">Log Viewer</string>
     <string name="log_viewer_back">Back</string>

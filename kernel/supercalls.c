@@ -24,7 +24,6 @@
 #include "file_wrapper.h"
 #include "syscall_hook_manager.h"
 
-#include "sulog.h"
 #ifdef CONFIG_KSU_MANUAL_SU
 #include "manual_su.h"
 #endif
@@ -54,10 +53,6 @@ bool allowed_for_su(void)
 {
     bool is_allowed =
         is_manager() || ksu_is_allow_uid_for_current(current_uid().val);
-#if __SULOG_GATE
-    ksu_sulog_report_permission_check(current_uid().val, current->comm,
-                                      is_allowed);
-#endif
     return is_allowed;
 }
 
@@ -106,9 +101,6 @@ static int do_report_event(void __user *arg)
             post_fs_data_lock = true;
             pr_info("post-fs-data triggered\n");
             on_post_fs_data();
-#if __SULOG_GATE
-            ksu_sulog_init();
-#endif
         }
         break;
     }
@@ -288,10 +280,6 @@ static int do_set_app_profile(void __user *arg)
     }
 
     if (!ksu_set_app_profile(&cmd.profile, true)) {
-#if __SULOG_GATE
-        ksu_sulog_report_manager_operation("SET_APP_PROFILE", current_uid().val,
-                                           cmd.profile.current_uid);
-#endif
         return -EFAULT;
     }
 
@@ -916,17 +904,6 @@ void ksu_supercalls_exit(void)
     unregister_kprobe(&reboot_kp);
 }
 
-static inline void ksu_ioctl_audit(unsigned int cmd, const char *cmd_name,
-                                   uid_t uid, int ret)
-{
-#if __SULOG_GATE
-    const char *result = (ret == 0)      ? "SUCCESS" :
-                         (ret == -EPERM) ? "DENIED" :
-                                           "FAILED";
-    ksu_sulog_report_syscall(uid, NULL, cmd_name, result);
-#endif
-}
-
 // IOCTL dispatcher
 static long anon_ksu_ioctl(struct file *filp, unsigned int cmd,
                            unsigned long arg)
@@ -945,14 +922,10 @@ static long anon_ksu_ioctl(struct file *filp, unsigned int cmd,
                 !ksu_ioctl_handlers[i].perm_check()) {
                 pr_warn("ksu ioctl: permission denied for cmd=0x%x uid=%d\n",
                         cmd, current_uid().val);
-                ksu_ioctl_audit(cmd, ksu_ioctl_handlers[i].name,
-                                current_uid().val, -EPERM);
                 return -EPERM;
             }
             // Execute handler
             int ret = ksu_ioctl_handlers[i].handler(argp);
-            ksu_ioctl_audit(cmd, ksu_ioctl_handlers[i].name, current_uid().val,
-                            ret);
             return ret;
         }
     }
@@ -1000,11 +973,6 @@ int ksu_install_fd(void)
 
     // Install fd
     fd_install(fd, filp);
-
-#if __SULOG_GATE
-    ksu_sulog_report_permission_check(current_uid().val, current->comm,
-                                      fd >= 0);
-#endif
 
     pr_info("ksu fd installed: %d for pid %d\n", fd, current->pid);
 
