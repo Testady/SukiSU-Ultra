@@ -35,9 +35,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Link
-import androidx.compose.material.icons.rounded.Star
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -54,6 +51,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -64,6 +62,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
@@ -103,11 +102,11 @@ import com.sukisu.ultra.ui.viewmodel.ModuleRepoViewModel
 import com.sukisu.ultra.ui.viewmodel.ModuleViewModel
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
+import top.yukonga.miuix.kmp.basic.DropdownImpl
 import top.yukonga.miuix.kmp.basic.HorizontalDivider
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.InfiniteProgressIndicator
-import top.yukonga.miuix.kmp.basic.ListPopup
 import top.yukonga.miuix.kmp.basic.ListPopupColumn
 import top.yukonga.miuix.kmp.basic.ListPopupDefaults
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
@@ -122,12 +121,14 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.basic.rememberPullToRefreshState
-import top.yukonga.miuix.kmp.extra.DropdownImpl
+import top.yukonga.miuix.kmp.extra.SuperListPopup
 import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.icons.useful.Back
-import top.yukonga.miuix.kmp.icon.icons.useful.ImmersionMore
-import top.yukonga.miuix.kmp.icon.icons.useful.NavigatorSwitch
-import top.yukonga.miuix.kmp.icon.icons.useful.Save
+import top.yukonga.miuix.kmp.icon.extended.Back
+import top.yukonga.miuix.kmp.icon.extended.FileDownloads
+import top.yukonga.miuix.kmp.icon.extended.HorizontalSplit
+import top.yukonga.miuix.kmp.icon.extended.Link
+import top.yukonga.miuix.kmp.icon.extended.MoreCircle
+import top.yukonga.miuix.kmp.icon.extended.TopDownloads
 import top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
 import top.yukonga.miuix.kmp.utils.PressFeedbackType
 import top.yukonga.miuix.kmp.utils.overScrollVertical
@@ -216,10 +217,10 @@ fun ModuleRepoScreen(
                     title = stringResource(R.string.module_repos),
                     actions = {
                         val showTopPopup = remember { mutableStateOf(false) }
-                        ListPopup(
+                        SuperListPopup(
                             show = showTopPopup,
                             popupPositionProvider = ListPopupDefaults.ContextMenuPositionProvider,
-                            alignment = PopupPositionProvider.Align.TopRight,
+                            alignment = PopupPositionProvider.Align.TopEnd,
                             onDismissRequest = { showTopPopup.value = false }
                         ) {
                             ListPopupColumn {
@@ -244,9 +245,9 @@ fun ModuleRepoScreen(
                             holdDownState = showTopPopup.value
                         ) {
                             Icon(
-                                imageVector = MiuixIcons.Useful.ImmersionMore,
-                                contentDescription = stringResource(id = R.string.settings),
-                                tint = colorScheme.onSurface
+                                imageVector = MiuixIcons.MoreCircle,
+                                tint = colorScheme.onSurface,
+                                contentDescription = null,
                             )
                         }
                     },
@@ -256,8 +257,12 @@ fun ModuleRepoScreen(
                             onClick = { navigator.popBackStack() }
 
                         ) {
+                            val layoutDirection = LocalLayoutDirection.current
                             Icon(
-                                imageVector = MiuixIcons.Useful.Back,
+                                modifier = Modifier.graphicsLayer {
+                                    if (layoutDirection == LayoutDirection.Rtl) scaleX = -1f
+                                },
+                                imageVector = MiuixIcons.Back,
                                 contentDescription = null,
                                 tint = colorScheme.onSurface
                             )
@@ -330,7 +335,7 @@ fun ModuleRepoScreen(
                                     if (module.stargazerCount > 0) {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
                                             Icon(
-                                                imageVector = Icons.Rounded.Star,
+                                                imageVector = MiuixIcons.TopDownloads,
                                                 contentDescription = "stars",
                                                 tint = colorScheme.onSurfaceVariantSummary,
                                                 modifier = Modifier.size(16.dp)
@@ -553,7 +558,7 @@ fun ModuleRepoScreen(
                                             if (module.stargazerCount > 0) {
                                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                                     Icon(
-                                                        imageVector = Icons.Rounded.Star,
+                                                        imageVector = MiuixIcons.TopDownloads,
                                                         contentDescription = "stars",
                                                         tint = colorScheme.onSurfaceVariantSummary,
                                                         modifier = Modifier.size(16.dp)
@@ -615,6 +620,22 @@ private fun ReadmePage(
         overscrollEffect = null,
     ) {
         item {
+            val isLoading = remember { mutableStateOf(true) }
+            if (isLoading.value) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(
+                            top = innerPadding.calculateTopPadding(),
+                            start = innerPadding.calculateStartPadding(layoutDirection),
+                            end = innerPadding.calculateEndPadding(layoutDirection),
+                            bottom = innerPadding.calculateBottomPadding(),
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    InfiniteProgressIndicator()
+                }
+            }
             AnimatedVisibility(
                 visible = readmeLoaded && readmeHtml != null,
                 enter = expandVertically() + fadeIn(),
@@ -626,7 +647,7 @@ private fun ReadmePage(
                         modifier = Modifier.padding(horizontal = 12.dp),
                     ) {
                         Column {
-                            GithubMarkdown(content = readmeHtml!!)
+                            GithubMarkdown(content = readmeHtml!!, isLoading)
                         }
                     }
                 }
@@ -738,7 +759,7 @@ fun ReleasesPage(
                                     }
                                 }
                                 HorizontalDivider(
-                                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 4.dp),
+                                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
                                     thickness = 0.5.dp,
                                     color = colorScheme.outline.copy(alpha = 0.5f)
                                 )
@@ -776,6 +797,7 @@ fun ReleasesPage(
                                             confirmDialog.showConfirm(title = confirmTitle, content = startText)
                                         }
                                     }
+                                    val bottomPadding = if (index == rel.assets.lastIndex) 16.dp else 8.dp
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         verticalAlignment = Alignment.CenterVertically,
@@ -783,7 +805,7 @@ fun ReleasesPage(
                                     ) {
                                         Column(
                                             modifier = Modifier
-                                                .padding(start = 16.dp, end = 16.dp, bottom = 16.dp)
+                                                .padding(start = 16.dp, end = 16.dp, bottom = bottomPadding)
                                                 .weight(1f)
                                         ) {
                                             Text(
@@ -799,7 +821,7 @@ fun ReleasesPage(
                                             )
                                         }
                                         IconButton(
-                                            modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
+                                            modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = bottomPadding),
                                             backgroundColor = secondaryContainer,
                                             minHeight = 35.dp,
                                             minWidth = 35.dp,
@@ -819,7 +841,7 @@ fun ReleasesPage(
                                                 ) {
                                                     Icon(
                                                         modifier = Modifier.size(20.dp),
-                                                        imageVector = MiuixIcons.Useful.Save,
+                                                        imageVector = MiuixIcons.FileDownloads,
                                                         tint = actionIconTint,
                                                         contentDescription = stringResource(R.string.install)
                                                     )
@@ -836,7 +858,7 @@ fun ReleasesPage(
                                     }
                                     if (index != rel.assets.lastIndex) {
                                         HorizontalDivider(
-                                            modifier = Modifier.padding(vertical = 8.dp),
+                                            modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
                                             thickness = 0.5.dp,
                                             color = colorScheme.outline.copy(alpha = 0.5f)
                                         )
@@ -917,7 +939,7 @@ fun InfoPage(
                                 ) {
                                     Icon(
                                         modifier = Modifier.size(20.dp),
-                                        imageVector = Icons.Rounded.Link,
+                                        imageVector = MiuixIcons.Link,
                                         tint = tint,
                                         contentDescription = null
                                     )
@@ -971,7 +993,7 @@ fun InfoPage(
                         ) {
                             Icon(
                                 modifier = Modifier.size(20.dp),
-                                imageVector = Icons.Rounded.Link,
+                                imageVector = MiuixIcons.Link,
                                 tint = actionIconTint,
                                 contentDescription = null
                             )
@@ -1040,8 +1062,12 @@ fun ModuleRepoDetailScreen(
                             navigator.popBackStack()
                         }
                     ) {
+                        val layoutDirection = LocalLayoutDirection.current
                         Icon(
-                            imageVector = MiuixIcons.Useful.Back,
+                            modifier = Modifier.graphicsLayer {
+                                if (layoutDirection == LayoutDirection.Rtl) scaleX = -1f
+                            },
+                            imageVector = MiuixIcons.Back,
                             contentDescription = null,
                             tint = colorScheme.onSurface
                         )
@@ -1054,7 +1080,7 @@ fun ModuleRepoDetailScreen(
                             onClick = { uriHandler.openUri(webUrl) }
                         ) {
                             Icon(
-                                imageVector = MiuixIcons.Useful.NavigatorSwitch,
+                                imageVector = MiuixIcons.HorizontalSplit,
                                 contentDescription = null,
                                 tint = colorScheme.onBackground
                             )
