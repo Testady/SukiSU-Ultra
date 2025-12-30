@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.Article
 import androidx.compose.material.icons.rounded.Adb
 import androidx.compose.material.icons.rounded.BugReport
 import androidx.compose.material.icons.rounded.Code
@@ -38,6 +39,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -57,6 +59,7 @@ import com.ramcosta.composedestinations.generated.destinations.KpmScreenDestinat
 import com.ramcosta.composedestinations.generated.destinations.PersonalizationDestination
 import com.ramcosta.composedestinations.generated.destinations.SuSFSConfigScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.ToolsDestination
+import com.ramcosta.composedestinations.generated.destinations.SulogScreenDestination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
@@ -74,6 +77,9 @@ import com.sukisu.ultra.ui.util.getFeatureStatus
 import com.sukisu.ultra.ui.util.rememberKpmAvailable
 import com.sukisu.ultra.ui.util.getFeaturePersistValue
 import com.sukisu.ultra.ui.util.getSuSFSStatus
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
@@ -605,6 +611,32 @@ fun SettingPager(
                         .padding(vertical = 12.dp)
                         .fillMaxWidth(),
                 ) {
+                    val scope = rememberCoroutineScope()
+
+                    SuperArrow(
+                        title = stringResource(id = R.string.settings_view_sulog),
+                        summary = stringResource(id = R.string.settings_view_sulog_summary),
+                        leftAction = {
+                            Icon(
+                                Icons.AutoMirrored.Rounded.Article,
+                                modifier = Modifier.padding(end = 16.dp),
+                                contentDescription = stringResource(id = R.string.settings_view_sulog),
+                                tint = colorScheme.onBackground
+                            )
+                        },
+                        onClick = {
+                            scope.launch {
+                                loadingDialog.withLoading {
+                                    withContext(Dispatchers.IO) {
+                                        execKsud("sulog dump", true)
+                                    }
+                                }
+                                navigator.navigate(SulogScreenDestination) {
+                                    launchSingleTop = true
+                                }
+                            }
+                        }
+                    )
                     SuperArrow(
                         title = stringResource(id = R.string.send_log),
                         leftAction = {

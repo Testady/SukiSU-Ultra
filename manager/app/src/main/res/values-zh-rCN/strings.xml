@@ -192,6 +192,8 @@
     <string name="signature_index">签名 %1$d</string>
     <!-- Log Viewer -->
     <string name="log_viewer_title">日志查看器</string>
+    <string name="settings_view_sulog">查看 sulog 日志</string>
+    <string name="settings_view_sulog_summary">打开 sulog 查看器</string>
     <string name="log_viewer_back">返回</string>
     <string name="log_viewer_search">搜索</string>
     <string name="log_viewer_clear_logs">清空日志</string>

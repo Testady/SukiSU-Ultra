@@ -197,6 +197,8 @@
     <string name="signature_index">Signature %1$d</string>
     <!-- Log Viewer -->
     <string name="log_viewer_title">Log Viewer</string>
+    <string name="settings_view_sulog">View sulog logs</string>
+    <string name="settings_view_sulog_summary">Open sulog viewer</string>
     <string name="log_viewer_back">Back</string>
     <string name="log_viewer_search">Search</string>
     <string name="log_viewer_clear_logs">Clear Logs</string>

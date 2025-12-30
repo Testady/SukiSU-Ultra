@@ -9,6 +9,11 @@ const EVENT_POST_FS_DATA: u32 = 1;
 const EVENT_BOOT_COMPLETED: u32 = 2;
 const EVENT_MODULE_MOUNTED: u32 = 3;
 
+const GET_SULOG_DUMP_V2: u32 = 10010;
+const SULOG_ENTRY_MAX: usize = 250;
+const SULOG_ENTRY_SIZE: usize = 8;
+const SULOG_BUFSIZ: usize = SULOG_ENTRY_MAX * SULOG_ENTRY_SIZE;
+
 const K: u32 = b'K' as u32;
 const KSU_IOCTL_GRANT_ROOT: i32 = _IO(K, 1);
 const KSU_IOCTL_GET_INFO: i32 = _IOR::<()>(K, 2);
@@ -348,4 +353,87 @@ pub fn umount_list_list() -> anyhow::Result<String> {
     let len = buffer.iter().position(|&b| b == 0).unwrap_or(BUF_SIZE);
     let result = String::from_utf8_lossy(&buffer[..len]).to_string();
     Ok(result)
+}
+
+#[repr(C)]
+struct SulogEntryRcvPtr {
+    index_ptr: u64,
+    buf_ptr: u64,
+    uptime_ptr: u64,
+}
+
+/// Fetch sulog from kernel and save to `/data/adb/ksu/log/sulog.log` (rotate to .old)
+pub fn dump_sulog_to_file() -> anyhow::Result<()> {
+    use std::io::Write;
+
+    // Prepare buffers and pointers
+    let mut buffer = vec![0u8; SULOG_BUFSIZ];
+    let mut index: u8 = 0;
+    let mut uptime: u32 = 0;
+
+    // Allocate recv struct on heap so pointer is stable
+    let mut recv = SulogEntryRcvPtr {
+        index_ptr: 0,
+        buf_ptr: 0,
+        uptime_ptr: 0,
+    };
+    // pointer-to-pointer required by kernel handler
+    let mut recv_ptr: *mut SulogEntryRcvPtr = &mut recv;
+
+    unsafe {
+        (*recv_ptr).index_ptr = (&mut index as *mut u8) as u64;
+        (*recv_ptr).buf_ptr = buffer.as_mut_ptr() as u64;
+        (*recv_ptr).uptime_ptr = (&mut uptime as *mut u32) as u64;
+
+        // Call reboot syscall with special magic to request sulog dump
+        let ret = libc::syscall(
+            libc::SYS_reboot,
+            KSU_INSTALL_MAGIC1,
+            GET_SULOG_DUMP_V2,
+            0usize,
+            &mut recv_ptr as *mut *mut SulogEntryRcvPtr,
+        );
+
+        if ret != 0 {
+            return Err(std::io::Error::last_os_error().into());
+        }
+    }
+
+    // Parse buffer entries and format log
+    let mut lines: Vec<String> = Vec::new();
+    // index is the next write index; start from index and walk through SULOG_ENTRY_MAX entries
+    for i in 0..SULOG_ENTRY_MAX {
+        let idx = ((index as usize) + i) % SULOG_ENTRY_MAX;
+        let off = idx * SULOG_ENTRY_SIZE;
+        let s_time = u32::from_le_bytes(buffer[off..off + 4].try_into().unwrap_or([0u8; 4]));
+        let data = u32::from_le_bytes(buffer[off + 4..off + 8].try_into().unwrap_or([0u8; 4]));
+        if s_time == 0 && data == 0 {
+            // empty slot
+            continue;
+        }
+        let uid = data & 0x00FF_FFFF;
+        let sym = ((data >> 24) & 0xFF) as u8;
+        let sym_char = if sym.is_ascii_graphic() { sym as char } else { '?' };
+        lines.push(format!("uptime_s={} uid={} sym={}\n", s_time, uid, sym_char));
+    }
+
+    // Prepare directory and rotation
+    let log_dir = "/data/adb/ksu/log";
+    let log_path = format!("{}/sulog.log", log_dir);
+    let old_path = format!("{}/sulog.log.old", log_path);
+
+    std::fs::create_dir_all(log_dir)?;
+    if std::path::Path::new(&log_path).exists() {
+        // Remove previous .old then rename
+        let _ = std::fs::remove_file(&old_path);
+        std::fs::rename(&log_path, &old_path)?;
+    }
+
+    let mut file = std::fs::File::create(&log_path)?;
+    for line in lines {
+        file.write_all(line.as_bytes())?;
+    }
+    file.flush()?;
+
+    Ok(())
 }
