@@ -52,15 +52,15 @@ int __init kernelsu_init(void)
 	pr_alert(
 		"*************************************************************");
 	pr_alert(
-		"**	 NOTICE NOTICE NOTICE NOTICE NOTICE NOTICE NOTICE	**");
+		"**     NOTICE NOTICE NOTICE NOTICE NOTICE NOTICE NOTICE    **");
 	pr_alert(
-		"**														 **");
+		"**                                                         **");
 	pr_alert(
-		"**		 You are running KernelSU in DEBUG mode		  **");
+		"**         You are running KernelSU in DEBUG mode          **");
 	pr_alert(
-		"**														 **");
+		"**                                                         **");
 	pr_alert(
-		"**	 NOTICE NOTICE NOTICE NOTICE NOTICE NOTICE NOTICE	**");
+		"**     NOTICE NOTICE NOTICE NOTICE NOTICE NOTICE NOTICE    **");
 	pr_alert(
 		"*************************************************************");
 #endif
