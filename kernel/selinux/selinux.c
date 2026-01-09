@@ -174,8 +174,7 @@ static bool is_sid_match(const struct cred *cred, u32 cached_sid,
 	// Slow path fallback: string comparison (only before cache is initialized)
 	struct lsm_context ctx = { 0 };
 	bool result;
-	int err = __security_secid_to_secctx(tsec->sid, &ctx);
-	if (err) {
+	if (__security_secid_to_secctx(tsec->sid, &ctx)) {
 		return false;
 	}
 	result = strncmp(fallback_context, ctx.context, ctx.len) == 0;
