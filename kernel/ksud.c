@@ -478,11 +478,12 @@ static bool check_init_path(char *dpath)
 
 static bool is_init_rc(struct file *fp)
 {
-#if defined(CONFIG_KSU_MANUAL_HOOK) || defined(CONFIG_KSU_SUSFS)
+#ifdef CONFIG_KSU_MANUAL_HOOK
 	if (!ksu_init_rc_hook) {
 		return false;
 	}
 #endif
+
 	if (strcmp(current->comm, "init")) {
 		// we are only interest in `init` process
 		return false;
@@ -511,9 +512,9 @@ static bool is_init_rc(struct file *fp)
 	return true;
 }
 
-static void ksu_handle_sys_read(unsigned int fd)
+void ksu_handle_sys_read(unsigned int fd)
 {
-#if defined(CONFIG_KSU_SYSCALL_HOOK) || defined(CONFIG_KSU_SUSFS)
+#ifdef CONFIG_KSU_SYSCALL_HOOK
 	struct file *file = fget(fd);
 	if (!file) {
 		return;
@@ -644,3 +645,20 @@ void ksu_ksud_exit(void)
 #endif // #ifndef CONFIG_KSU_SUSFS
 	is_boot_phase = false;
 }
+
+#ifdef CONFIG_KSU_SUSFS
+void ksu_handle_sys_newfstatat(int fd, loff_t *kstat_size_ptr) {
+    loff_t new_size = *kstat_size_ptr + ksu_rc_len;
+    struct file *file = fget(fd);
+
+    if (!file)
+        return;
+
+    if (is_init_rc(file)) {
+        pr_info("stat init.rc");
+        pr_info("adding ksu_rc_len: %lld -> %lld", *kstat_size_ptr, new_size);
+        *kstat_size_ptr = new_size;
+    }
+    fput(file);
+}
+#endif // #ifdef CONFIG_KSU_SUSFS
