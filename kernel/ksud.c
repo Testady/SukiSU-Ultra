@@ -478,6 +478,11 @@ static bool check_init_path(char *dpath)
 
 static bool is_init_rc(struct file *fp)
 {
+#if defined(CONFIG_KSU_MANUAL_HOOK) || defined(CONFIG_KSU_SUSFS)
+	if (!ksu_init_rc_hook) {
+		return false;
+	}
+#endif
 	if (strcmp(current->comm, "init")) {
 		// we are only interest in `init` process
 		return false;
@@ -508,6 +513,7 @@ static bool is_init_rc(struct file *fp)
 
 static void ksu_handle_sys_read(unsigned int fd)
 {
+#if defined(CONFIG_KSU_SYSCALL_HOOK) || defined(CONFIG_KSU_SUSFS)
 	struct file *file = fget(fd);
 	if (!file) {
 		return;
@@ -516,6 +522,10 @@ static void ksu_handle_sys_read(unsigned int fd)
 	if (!is_init_rc(file)) {
 		goto skip;
 	}
+#else
+	/* Do nothing */
+	return false;
+#endif
 
 	// we only process the first read
 	static bool rc_hooked = false;
