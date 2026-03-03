@@ -244,9 +244,6 @@
     <string name="apply_config">Применить конфигурацию</string>
     <string name="config_applied">Конфигурация применена к ядру</string>
     <string name="mnt_detach">MNT_DETACH</string>
-    <!-- Personalization Settings -->
-    <string name="personalization">Персонализация</string>
-    <string name="personalization_summary">Настройка внешнего вида приложения и темы</string>
     <!-- Kernel Flash Progress Related -->
     <string name="horizon_flash_complete">Прошивка завершена</string>
     <string name="horizon_preparing">Подготовка…</string>
