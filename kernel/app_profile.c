@@ -376,7 +376,11 @@ void escape_to_root_for_cmd_su(uid_t target_uid, pid_t target_pid)
 
 	setup_groups(&profile, newcreds);
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 0) && LINUX_VERSION_CODE < KERNEL_VERSION(4, 5, 0)
+	setup_selinux(profile.selinux_domain, current->newcreds);
+#else
 	setup_selinux(profile.selinux_domain, newcreds);
+#endif
 
 	commit_creds(newcreds);
 
