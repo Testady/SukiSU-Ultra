@@ -29,6 +29,7 @@
 #include "ksu.h"
 #include "file_wrapper.h"
 
+#ifdef MODULE
 // workaround for A12-5.10 kernel
 // Some third-party kernel (e.g. linegaeOS) uses wrong toolchain, which supports
 // CC_HAVE_STACKPROTECTOR_SYSREG while gki's toolchain doesn't.
@@ -44,6 +45,7 @@ unsigned long __stack_chk_guard __ro_after_init
 #else
 #define NO_STACK_PROTECTOR_WORKAROUND
 #endif
+#endif
 
 struct cred *ksu_cred;
 
@@ -57,9 +59,17 @@ void sukisu_custom_config_exit(void)
 {
 }
 
+#ifdef MODULE
 NO_STACK_PROTECTOR_WORKAROUND
+#endif
 int __init kernelsu_init(void)
 {
+#ifndef DDK_ENV
+	pr_info("Initialized on: %s (%s) with driver version: %u\n",
+		UTS_RELEASE, UTS_MACHINE, KSU_VERSION);
+#endif
+
+#ifdef MODULE
 #if defined(CONFIG_STACKPROTECTOR) && !defined(CONFIG_STACKPROTECTOR_PER_TASK)
     unsigned long canary;
 
@@ -69,9 +79,6 @@ int __init kernelsu_init(void)
     canary &= CANARY_MASK;
     __stack_chk_guard = canary;
 #endif
-#ifndef DDK_ENV
-	pr_info("Initialized on: %s (%s) with driver version: %u\n",
-		UTS_RELEASE, UTS_MACHINE, KSU_VERSION);
 #endif
 
 #ifdef CONFIG_KSU_DEBUG
