@@ -1126,7 +1126,7 @@ int ksu_handle_sys_reboot(int magic1, int magic2, unsigned int cmd,
 			susfs_show_version(arg);
 			return 0;
 		}
-		return 0;
+		return -EINVAL;
 	}
 
 	// Check if this is a request to install KSU fd
