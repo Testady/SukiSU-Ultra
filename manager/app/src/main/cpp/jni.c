@@ -40,6 +40,10 @@ NativeBridgeNP(isLkmMode, jboolean) {
 	return is_lkm_mode();
 }
 
+NativeBridgeNP(isLateLoadMode, jboolean) {
+	return is_late_load_mode();
+}
+
 NativeBridgeNP(isManager, jboolean) {
 	return is_manager();
 }

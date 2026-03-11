@@ -52,6 +52,7 @@ is_executable = "1"
 nom = "8"
 derive-new = "0.7"
 getopts = "0.2"
+ksuinit = { path = "../ksuinit" }
 serde = { version = "1.0", features = ["derive"] }
 notify = "6.1"
 

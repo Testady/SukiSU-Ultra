@@ -261,9 +261,13 @@ private fun StatusCard(
     ) {
         when {
             ksuVersion != null -> {
-                val safeMode = when {
-                    Natives.isSafeMode -> " [${stringResource(id = R.string.safe_mode)}]"
-                    else -> ""
+                val workingState = buildString {
+                    if (Natives.isSafeMode) {
+                        append(" [${stringResource(id = R.string.safe_mode)}]")
+                    }
+                    if (Natives.isLateLoadMode) {
+                        append(" [${stringResource(id = R.string.jailbreak_mode)}]")
+                    }
                 }
 
                 val workingMode = when (lkmMode) {
@@ -272,7 +276,7 @@ private fun StatusCard(
                     else -> " <Built-in>"
                 }
 
-                val workingText = "${stringResource(id = R.string.home_working)}$workingMode$safeMode"
+                val workingText = "${stringResource(id = R.string.home_working)}$workingMode$workingState"
 
                 Row(
                     modifier = Modifier

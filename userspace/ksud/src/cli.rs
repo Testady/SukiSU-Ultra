@@ -37,6 +37,9 @@ enum Commands {
     /// Trigger `boot-complete` event
     BootCompleted,
 
+    /// Load kernelsu.ko and execute late-load stage scripts
+    LateLoad,
+
     #[cfg(target_arch = "aarch64")]
     /// Susfs
     Susfs {
@@ -633,6 +636,7 @@ pub fn run() -> Result<()> {
             Sepolicy::Apply { file } => crate::sepolicy::apply_file(file),
             Sepolicy::Check { sepolicy } => crate::sepolicy::check_rule(&sepolicy),
         },
+        Commands::LateLoad => crate::late_load::run(),
         Commands::Services => {
             init_event::on_services();
             Ok(())
