@@ -21,31 +21,24 @@
 // while those third-party kernel can't provide.
 // Thus, we manually provide it instead of using kernel's
 #if defined(CONFIG_STACKPROTECTOR) &&                                          \
-    (defined(CONFIG_ARM64) && !defined(CONFIG_STACKPROTECTOR_PER_TASK))
+    (defined(CONFIG_ARM64) && defined(MODULE) &&                               \
+     !defined(CONFIG_STACKPROTECTOR_PER_TASK))
 #include <linux/stackprotector.h>
 #include <linux/random.h>
 unsigned long __stack_chk_guard __ro_after_init
     __attribute__((visibility("hidden")));
-#define NO_STACK_PROTECTOR_WORKAROUND __attribute__((no_stack_protector))
-#else
-#define NO_STACK_PROTECTOR_WORKAROUND
-#endif
 
-struct cred *ksu_cred;
 
-void sukisu_custom_config_init(void)
+
+
+
+__attribute__((no_stack_protector)) void ksu_setup_stack_chk_guard()
+
+
+
 {
-}
 
-void sukisu_custom_config_exit(void)
-{
-}
 
-NO_STACK_PROTECTOR_WORKAROUND
-int __init kernelsu_init(void)
-{
-#if defined(CONFIG_STACKPROTECTOR) &&                                          \
-    (defined(CONFIG_ARM64) && !defined(CONFIG_STACKPROTECTOR_PER_TASK))
     unsigned long canary;
 
     /* Try to get a semi random initial value. */
@@ -53,8 +46,24 @@ int __init kernelsu_init(void)
     canary ^= LINUX_VERSION_CODE;
     canary &= CANARY_MASK;
     __stack_chk_guard = canary;
+}
+
+__attribute__((naked)) int __init kernelsu_init_early(void)
+{
+    asm("mov x19, x30;\n"
+        "bl ksu_setup_stack_chk_guard;\n"
+        "mov x30, x19;\n"
+        "b kernelsu_init;\n");
+}
+#define NEED_OWN_STACKPROTECTOR 1
+#else
+#define NEED_OWN_STACKPROTECTOR 0
 #endif
 
+struct cred *ksu_cred;
+
+int __init kernelsu_init(void)
+{
 #ifdef CONFIG_KSU_DEBUG
     pr_alert("*************************************************************");
     pr_alert("**     NOTICE NOTICE NOTICE NOTICE NOTICE NOTICE NOTICE    **");
@@ -73,8 +82,6 @@ int __init kernelsu_init(void)
     ksu_feature_init();
 
     ksu_supercalls_init();
-
-    sukisu_custom_config_init();
 
     ksu_syscall_hook_manager_init();
 
@@ -107,8 +114,6 @@ void kernelsu_exit(void)
 
     ksu_syscall_hook_manager_exit();
 
-    sukisu_custom_config_exit();
-
     ksu_supercalls_exit();
 
     ksu_feature_exit();
@@ -118,7 +123,11 @@ void kernelsu_exit(void)
     }
 }
 
+#if NEED_OWN_STACKPROTECTOR
+module_init(kernelsu_init_early);
+#else
 module_init(kernelsu_init);
+#endif
 module_exit(kernelsu_exit);
 
 MODULE_LICENSE("GPL");
