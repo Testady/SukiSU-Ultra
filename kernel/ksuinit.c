@@ -6,6 +6,7 @@
 #include <generated/utsrelease.h>
 #include <generated/compile.h>
 #include <linux/version.h> /* LINUX_VERSION_CODE, KERNEL_VERSION macros */
+#include <linux/sched.h>
 
 #ifdef CONFIG_KSU_SUSFS
 #include <linux/susfs.h>
@@ -15,6 +16,7 @@
 #include "arch.h"
 #include "feature.h"
 #include "klog.h" // IWYU pragma: keep
+#include "manager.h"
 #include "ksu.h"
 #include "throne_tracker.h"
 #ifdef CONFIG_KSU_SYSCALL_HOOK
@@ -28,6 +30,7 @@
 #include "supercalls.h"
 #include "ksu.h"
 #include "file_wrapper.h"
+#include "selinux/selinux.h"
 
 // workaround for A12-5.10 kernel
 // Some third-party kernel (e.g. linegaeOS) uses wrong toolchain, which supports
@@ -76,9 +79,16 @@ void sukisu_custom_config_exit(void)
 }
 
 struct cred *ksu_cred;
+bool ksu_late_loaded;
 
 int __init kernelsu_init(void)
 {
+#ifdef MODULE
+    ksu_late_loaded = (current->pid != 1);
+#else
+    ksu_late_loaded = false;
+#endif
+
 #ifndef DDK_ENV
 	pr_info("Initialized on: %s (%s) with driver version: %u\n",
 		UTS_RELEASE, UTS_MACHINE, KSU_VERSION);
@@ -112,20 +122,58 @@ int __init kernelsu_init(void)
 
 	sukisu_custom_config_init();
 
+	if (ksu_late_loaded) {
+        pr_info("late load mode, skipping kprobe hooks\n");
+
+        apply_kernelsu_rules();
+        cache_sid();
+        setup_ksu_cred();
+
+		ksu_lsm_hook_init();
+
+#if defined(CONFIG_KSU_MANUAL_HOOK) || defined(CONFIG_KSU_SUSFS)
+		ksu_setuid_hook_init();
+		ksu_sucompat_init();
+#endif
+
+        ksu_allowlist_init();
+        ksu_load_allow_list();
+
 #ifdef CONFIG_KSU_SYSCALL_HOOK
 	ksu_syscall_hook_manager_init();
 #endif
 
-	ksu_lsm_hook_init();
+        ksu_throne_tracker_init();
 
-#if defined(CONFIG_KSU_MANUAL_HOOK) || defined(CONFIG_KSU_SUSFS)
-	ksu_setuid_hook_init();
-	ksu_sucompat_init();
+#if defined(CONFIG_KSU_SYSCALL_HOOK) || defined(CONFIG_KSU_SUSFS) ||           \
+	(LINUX_VERSION_CODE >= KERNEL_VERSION(6, 8, 0) &&                      \
+	 defined(CONFIG_KSU_MANUAL_HOOK))
+		ksu_observer_init();
 #endif
 
-	ksu_allowlist_init();
+#ifdef CONFIG_KSU_SUSFS
+	susfs_init();
+#endif // #ifdef CONFIG_KSU_SUSFS
 
-	ksu_throne_tracker_init();
+        ksu_file_wrapper_init();
+
+        ksu_boot_completed = true;
+        track_throne(false);
+    } else {
+#ifdef CONFIG_KSU_SYSCALL_HOOK
+        ksu_syscall_hook_manager_init();
+#endif
+
+		ksu_lsm_hook_init();
+
+#if defined(CONFIG_KSU_MANUAL_HOOK) || defined(CONFIG_KSU_SUSFS)
+		ksu_setuid_hook_init();
+		ksu_sucompat_init();
+#endif
+
+        ksu_allowlist_init();
+
+        ksu_throne_tracker_init();
 
 #ifdef CONFIG_KSU_SUSFS
 	susfs_init();
@@ -135,7 +183,8 @@ int __init kernelsu_init(void)
 	ksu_ksud_init();
 #endif // #ifndef CONFIG_KSU_SUSFS
 
-	ksu_file_wrapper_init();
+        ksu_file_wrapper_init();
+    }
 
 #ifdef MODULE
 #ifndef CONFIG_KSU_DEBUG
@@ -163,6 +212,7 @@ void kernelsu_exit(void)
 	ksu_observer_exit();
 #endif
 #ifndef CONFIG_KSU_SUSFS
+	if (!ksu_late_loaded)
 	ksu_ksud_exit();
 #endif // #ifndef CONFIG_KSU_SUSFS
 #ifdef CONFIG_KSU_SYSCALL_HOOK

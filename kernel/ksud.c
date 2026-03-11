@@ -30,6 +30,7 @@
 #include "arch.h"
 #include "kernel_compat.h"
 #include "klog.h" // IWYU pragma: keep
+#include "ksu.h"
 #include "ksud.h"
 #ifdef CONFIG_KSU_SYSCALL_HOOK
 #include "kp_hook.h"
@@ -595,6 +596,9 @@ int ksu_handle_input_handle_event(unsigned int *type, unsigned int *code,
 
 bool ksu_is_safe_mode(void)
 {
+	if (ksu_late_loaded) {
+        return false;
+    }
 	return is_volumedown_enough(volumedown_pressed_count);
 }
 
