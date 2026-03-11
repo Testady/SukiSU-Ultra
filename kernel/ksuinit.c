@@ -129,6 +129,11 @@ int __init kernelsu_init(void)
         cache_sid();
         setup_ksu_cred();
 
+		if (!getenforce()) {
+            pr_info("Permissive SELinux, enforcing\n");
+            setenforce(true);
+        }
+
 		ksu_lsm_hook_init();
 
 #if defined(CONFIG_KSU_MANUAL_HOOK) || defined(CONFIG_KSU_SUSFS)
@@ -140,7 +145,7 @@ int __init kernelsu_init(void)
         ksu_load_allow_list();
 
 #ifdef CONFIG_KSU_SYSCALL_HOOK
-	ksu_syscall_hook_manager_init();
+		ksu_syscall_hook_manager_init();
 #endif
 
         ksu_throne_tracker_init();
@@ -152,7 +157,7 @@ int __init kernelsu_init(void)
 #endif
 
 #ifdef CONFIG_KSU_SUSFS
-	susfs_init();
+		susfs_init();
 #endif // #ifdef CONFIG_KSU_SUSFS
 
         ksu_file_wrapper_init();
@@ -176,11 +181,11 @@ int __init kernelsu_init(void)
         ksu_throne_tracker_init();
 
 #ifdef CONFIG_KSU_SUSFS
-	susfs_init();
+		susfs_init();
 #endif // #ifdef CONFIG_KSU_SUSFS
 
 #ifndef CONFIG_KSU_SUSFS
-	ksu_ksud_init();
+		ksu_ksud_init();
 #endif // #ifndef CONFIG_KSU_SUSFS
 
         ksu_file_wrapper_init();
