@@ -51,6 +51,7 @@ import androidx.lifecycle.compose.dropUnlessResumed
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.sukisu.ultra.Natives
 import com.sukisu.ultra.R
 import com.sukisu.ultra.ui.component.KeyEventBlocker
 import com.sukisu.ultra.ui.navigation3.LocalNavigator
@@ -73,13 +74,24 @@ fun FlashScreenMaterial(flashIt: FlashIt) {
         mutableStateOf(FlashingStatus.FLASHING)
     }
 
+    val needJailbreakWarning = flashIt is FlashIt.FlashBoot && Natives.isLateLoadMode
+    var flashEnabled by rememberSaveable { mutableStateOf(!needJailbreakWarning) }
+
+    if (needJailbreakWarning && !flashEnabled) {
+        JailbreakFlashWarningDialog(
+            onConfirm = { flashEnabled = true },
+            onDismiss = { navigator.pop() }
+        )
+    }
+
     FlashEffect(
         flashIt = flashIt,
         text = text,
         logContent = logContent,
         onTextUpdate = { text = it },
         onShowRebootChange = { showFloatAction = it },
-        onFlashingStatusChange = { flashing = it }
+        onFlashingStatusChange = { flashing = it },
+        enabled = flashEnabled
     )
 
     // 如果是从外部打开的模块安装，延迟1秒后自动退出
