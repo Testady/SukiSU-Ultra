@@ -13,6 +13,7 @@
 #endif // #ifdef CONFIG_KSU_SUSFS
 
 #include "allowlist.h"
+#include "app_profile.h"
 #include "arch.h"
 #include "feature.h"
 #include "klog.h" // IWYU pragma: keep
@@ -129,10 +130,10 @@ int __init kernelsu_init(void)
         cache_sid();
         setup_ksu_cred();
 
-		if (!getenforce()) {
-            pr_info("Permissive SELinux, enforcing\n");
-            setenforce(true);
-        }
+		// Grant current process (ksud late-load) root
+        // with KSU SELinux domain before enforcing SELinux, so it
+        // can continue to access /data/app etc. after enforcement.
+        escape_to_root_for_init();
 
 		ksu_lsm_hook_init();
 
@@ -164,6 +165,12 @@ int __init kernelsu_init(void)
 
         ksu_boot_completed = true;
         track_throne(false);
+
+		if (!getenforce()) {
+            pr_info("Permissive SELinux, enforcing\n");
+            setenforce(true);
+        }
+		
     } else {
 #ifdef CONFIG_KSU_SYSCALL_HOOK
         ksu_syscall_hook_manager_init();
