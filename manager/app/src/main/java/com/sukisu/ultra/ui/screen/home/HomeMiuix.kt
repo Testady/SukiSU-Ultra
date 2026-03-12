@@ -53,6 +53,7 @@ import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import com.sukisu.ultra.KernelVersion
+import com.sukisu.ultra.BuildConfig
 import com.sukisu.ultra.Natives
 import com.sukisu.ultra.R
 import com.sukisu.ultra.getKernelVersion
@@ -141,6 +142,12 @@ fun HomePagerMiuix(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
+                    if (isManager && BuildConfig.IS_PR_BUILD) {
+                        WarningCard(stringResource(id = R.string.home_pr_build_warning))
+                    }
+                    if (isManager && !BuildConfig.IS_PR_BUILD && Natives.isPrBuild) {
+                        WarningCard(stringResource(id = R.string.home_pr_kernel_warning))
+                    }
                     if (isManager && Natives.requireNewKernel()) {
                         WarningCard(
                             stringResource(id = R.string.require_kernel_version)

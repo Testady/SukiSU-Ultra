@@ -48,6 +48,10 @@ NativeBridgeNP(isManager, jboolean) {
 	return is_manager();
 }
 
+NativeBridgeNP(isPrBuild, jboolean) {
+	return is_pr_build();
+}
+
 static void fillIntArray(JNIEnv *env, jobject list, int *data, int count) {
 	jclass cls = GetEnvironment()->GetObjectClass(env, list);
 	jmethodID add = GetEnvironment()->GetMethodID(env, cls, "add", "(Ljava/lang/Object;)Z");
