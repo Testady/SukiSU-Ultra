@@ -1,5 +1,6 @@
 #include "prelude.h"
 #include "ksu.h"
+#include "logging.h"
 
 #include <jni.h>
 #include <sys/prctl.h>
@@ -7,6 +8,9 @@
 #include <string.h>
 #include <linux/capability.h>
 #include <pwd.h>
+#include <unistd.h>
+#include <sys/wait.h>
+#include <errno.h>
 
 NativeBridgeNP(getVersion, jint) {
     uint32_t version = get_version();
@@ -40,8 +44,16 @@ NativeBridgeNP(isLkmMode, jboolean) {
 	return is_lkm_mode();
 }
 
+NativeBridgeNP(isLateLoadMode, jboolean) {
+	return is_late_load_mode();
+}
+
 NativeBridgeNP(isManager, jboolean) {
 	return is_manager();
+}
+
+NativeBridgeNP(isPrBuild, jboolean) {
+	return is_pr_build();
 }
 
 static void fillIntArray(JNIEnv *env, jobject list, int *data, int count) {
@@ -305,6 +317,40 @@ NativeBridge(getUserName, jstring, jint uid) {
         return GetEnvironment()->NewStringUTF(env, pw->pw_name);
     }
     return NULL;
+}
+
+static int fork_dont_care() {
+	int pid = fork();
+	if (pid < 0) {
+		PLOGE("fork");
+		return pid;
+	} else if (pid > 0) {
+		TEMP_FAILURE_RETRY(waitpid(pid, nullptr, 0));
+		return pid;
+	}
+	// child
+
+	pid = fork();
+	if (pid < 0) {
+		PLOGE("fork 2");
+		_exit(1);
+	} else if (pid > 0) {
+		_exit(0);
+	}
+
+	// grandchild
+	return 0;
+}
+
+NativeBridge(forkDontCareAndExecKsud, void, jstring ksud_path) {
+	const char *path = (*env)->GetStringUTFChars(env, ksud_path, nullptr);
+	LOGD("executing magica %s", path);
+	if (fork_dont_care() == 0) {
+		execl(path, "ksud", "late-load", "--magica", "5555", NULL);
+		PLOGE("exec magica");
+		_exit(1);
+	}
+	(*env)->ReleaseStringUTFChars(env, ksud_path, path);
 }
 
 // Get HOOK type

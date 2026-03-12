@@ -1,6 +1,8 @@
 package com.sukisu.ultra.ui.screen.home
 
 import android.content.Context
+import android.content.Intent
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -31,17 +33,23 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CheckCircleOutline
 import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.platform.UriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -51,21 +59,31 @@ import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import com.sukisu.ultra.KernelVersion
+import com.sukisu.ultra.BuildConfig
 import com.sukisu.ultra.Natives
 import com.sukisu.ultra.R
 import com.sukisu.ultra.getKernelVersion
+import com.sukisu.ultra.magica.MagicaService
 import com.sukisu.ultra.ui.LocalMainPagerState
 import com.sukisu.ultra.ui.component.dialog.rememberConfirmDialog
+import com.sukisu.ultra.ui.component.dialog.rememberLoadingDialog
 import com.sukisu.ultra.ui.component.rebootlistpopup.RebootListPopupMiuix
 import com.sukisu.ultra.ui.navigation3.Navigator
 import com.sukisu.ultra.ui.navigation3.Route
 import com.sukisu.ultra.ui.theme.LocalEnableBlur
 import com.sukisu.ultra.ui.theme.isInDarkTheme
-import com.sukisu.ultra.ui.util.*
+import com.sukisu.ultra.ui.util.checkNewVersion
+import com.sukisu.ultra.ui.util.getModuleCount
+import com.sukisu.ultra.ui.util.getSuperuserCount
+import com.sukisu.ultra.ui.util.isSELinuxPermissive
 import com.sukisu.ultra.ui.util.module.LatestVersionInfo
+import com.sukisu.ultra.ui.util.rootAvailable
 import top.yukonga.miuix.kmp.basic.BasicComponent
+import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.Icon
@@ -73,6 +91,7 @@ import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.ScrollBehavior
 import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Link
@@ -129,10 +148,16 @@ fun HomePagerMiuix(
             overscrollEffect = null,
         ) {
             item {
-                val isManager = Natives.isManager
-                val ksuVersion = if (isManager) Natives.version else null
-                val lkmMode = ksuVersion?.let {
-                    if (kernelVersion.isGKI()) Natives.isLkmMode else null
+                val loadingDialog = rememberLoadingDialog()
+                var refreshKey by remember { mutableIntStateOf(0) }
+                val scope = rememberCoroutineScope()
+
+                val isManager = remember(refreshKey) { Natives.isManager }
+                val ksuVersion = remember(refreshKey) { if (isManager) Natives.version else null }
+                val lkmMode = remember(refreshKey) {
+                    ksuVersion?.let {
+                        if (kernelVersion.isGKI()) Natives.isLkmMode else null
+                    }
                 }
                 val mainState = LocalMainPagerState.current
 
@@ -141,6 +166,12 @@ fun HomePagerMiuix(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
+                    if (isManager && BuildConfig.IS_PR_BUILD) {
+                        WarningCard(stringResource(id = R.string.home_pr_build_warning))
+                    }
+                    if (isManager && !BuildConfig.IS_PR_BUILD && Natives.isPrBuild) {
+                        WarningCard(stringResource(id = R.string.home_pr_kernel_warning))
+                    }
                     if (isManager && Natives.requireNewKernel()) {
                         WarningCard(
                             stringResource(id = R.string.require_kernel_version)
@@ -152,8 +183,24 @@ fun HomePagerMiuix(
                     }
                     StatusCard(
                         kernelVersion, ksuVersion, lkmMode,
+                        isSafeMode = remember(refreshKey) { Natives.isSafeMode },
+                        isLateLoadMode = remember(refreshKey) { Natives.isLateLoadMode },
+                        isSELinuxPermissive = isSELinuxPermissive(),
+                        superuserCount = getSuperuserCount(),
+                        moduleCount = getModuleCount(),
                         onClickInstall = {
                             navigator.push(Route.Install)
+                        },
+                        onClickJailbreak = {
+                            loadingDialog.showLoading()
+                            context.startService(Intent(context, MagicaService::class.java))
+                            scope.launch(Dispatchers.IO) {
+                                delay(30_000)
+                                withContext(Dispatchers.Main) {
+                                    loadingDialog.hide()
+                                    Toast.makeText(context, R.string.jailbreak_timeout, Toast.LENGTH_LONG).show()
+                                }
+                            }
                         },
                         onClickSuperuser = {
                             mainState.animateToPage(1)
@@ -252,7 +299,13 @@ private fun StatusCard(
     kernelVersion: KernelVersion,
     ksuVersion: Int?,
     lkmMode: Boolean?,
+    isSafeMode: Boolean,
+    isLateLoadMode: Boolean,
+    isSELinuxPermissive: Boolean,
+    superuserCount: Int,
+    moduleCount: Int,
     onClickInstall: () -> Unit = {},
+    onClickJailbreak: () -> Unit = {},
     onClickSuperuser: () -> Unit = {},
     onclickModule: () -> Unit = {},
 ) {
@@ -261,9 +314,13 @@ private fun StatusCard(
     ) {
         when {
             ksuVersion != null -> {
-                val safeMode = when {
-                    Natives.isSafeMode -> " [${stringResource(id = R.string.safe_mode)}]"
-                    else -> ""
+                val workingState = buildString {
+                    if (isSafeMode) {
+                        append(" [${stringResource(id = R.string.safe_mode)}]")
+                    }
+                    if (isLateLoadMode) {
+                        append(" [${stringResource(id = R.string.jailbreak_mode)}]")
+                    }
                 }
 
                 val workingMode = when (lkmMode) {
@@ -272,7 +329,7 @@ private fun StatusCard(
                     else -> " <Built-in>"
                 }
 
-                val workingText = "${stringResource(id = R.string.home_working)}$workingMode$safeMode"
+                val workingText = "${stringResource(id = R.string.home_working)}$workingMode$workingState"
 
                 Row(
                     modifier = Modifier
@@ -366,7 +423,7 @@ private fun StatusCard(
                                 )
                                 Text(
                                     modifier = Modifier.fillMaxWidth(),
-                                    text = getSuperuserCount().toString(),
+                                    text = superuserCount.toString(),
                                     fontSize = 26.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     color = colorScheme.onSurface,
@@ -396,7 +453,7 @@ private fun StatusCard(
                                 )
                                 Text(
                                     modifier = Modifier.fillMaxWidth(),
-                                    text = getModuleCount().toString(),
+                                    text = moduleCount.toString(),
                                     fontSize = 26.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     color = colorScheme.onSurface,
@@ -408,26 +465,43 @@ private fun StatusCard(
             }
 
             kernelVersion.isGKI() -> {
-                Card(
-                    onClick = {
-                        onClickInstall()
-                    },
-                    showIndication = true,
-                    pressFeedbackType = PressFeedbackType.Sink
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    BasicComponent(
-                        title = stringResource(R.string.home_not_installed),
-                        summary = stringResource(R.string.home_click_to_install),
-                        startAction = {
-                            Icon(
-                                Icons.Rounded.ErrorOutline,
-                                stringResource(R.string.home_not_installed),
-                                modifier = Modifier
-                                    .padding(end = 16.dp),
-                                tint = colorScheme.onBackground,
-                            )
-                        }
-                    )
+                    Card(
+                        modifier = Modifier.weight(1f),
+                        onClick = {
+                            onClickInstall()
+                        },
+                        showIndication = true,
+                        pressFeedbackType = PressFeedbackType.Sink
+                    ) {
+                        BasicComponent(
+                            title = stringResource(R.string.home_not_installed),
+                            summary = stringResource(R.string.home_click_to_install),
+                            startAction = {
+                                Icon(
+                                    Icons.Rounded.ErrorOutline,
+                                    stringResource(R.string.home_not_installed),
+                                    modifier = Modifier
+                                        .padding(end = 16.dp),
+                                    tint = colorScheme.onBackground,
+                                )
+                            },
+                            endActions = {
+                                if (isSELinuxPermissive) {
+                                    TextButton(
+                                        text = stringResource(R.string.home_jailbreak),
+                                        insideMargin = PaddingValues(12.dp),
+                                        onClick = {
+                                            onClickJailbreak()
+                                        },
+                                        colors = ButtonDefaults.textButtonColorsPrimary()
+                                    )
+                                }
+                            }
+                        )
+                    }
                 }
             }
 
@@ -545,7 +619,7 @@ private fun DonateCard() {
 }
 
 @Composable
-private fun InfoCard() {
+private fun InfoCard(systemInfo: SystemInfo = rememberSystemInfo()) {
     val manualHookText = stringResource(R.string.manual_hook)
     val inlineHookText = stringResource(R.string.inline_hook)
     val tracepointHookText = stringResource(R.string.tracepoint_hook)
@@ -582,7 +656,6 @@ private fun InfoCard() {
     }
 
     Card {
-        val systemInfo = rememberSystemInfo()
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -618,4 +691,152 @@ private fun InfoCard() {
             )
         }
     }
+}
+
+@Preview(name = "Activated")
+@Composable
+private fun StatusCardActivatedPreview() {
+    StatusCard(
+        kernelVersion = KernelVersion(6, 1, 0),
+        ksuVersion = 12345,
+        lkmMode = true,
+        isSafeMode = false,
+        isLateLoadMode = false,
+        isSELinuxPermissive = false,
+        superuserCount = 5,
+        moduleCount = 10,
+    )
+}
+
+@Preview(name = "Not Activated")
+@Composable
+private fun StatusCardNotActivatedPreview() {
+    StatusCard(
+        kernelVersion = KernelVersion(6, 1, 0),
+        ksuVersion = null,
+        lkmMode = null,
+        isSafeMode = false,
+        isLateLoadMode = false,
+        isSELinuxPermissive = false,
+        superuserCount = 0,
+        moduleCount = 0,
+    )
+}
+
+@Preview(name = "Permissive")
+@Composable
+private fun StatusCardPermissivePreview() {
+    StatusCard(
+        kernelVersion = KernelVersion(6, 1, 0),
+        ksuVersion = null,
+        lkmMode = null,
+        isSafeMode = false,
+        isLateLoadMode = false,
+        isSELinuxPermissive = true,
+        superuserCount = 0,
+        moduleCount = 0,
+    )
+}
+
+@Preview(name = "Jailbreak")
+@Composable
+private fun StatusCardJailbreakPreview() {
+    StatusCard(
+        kernelVersion = KernelVersion(6, 1, 0),
+        ksuVersion = 12345,
+        lkmMode = true,
+        isSafeMode = false,
+        isLateLoadMode = true,
+        isSELinuxPermissive = false,
+        superuserCount = 5,
+        moduleCount = 10,
+    )
+}
+
+private val previewSystemInfo = SystemInfo(
+    kernelVersion = "6.1.0-android14-0-g1234567",
+    managerVersion = "1.0.0 (10000)",
+    fingerprint = "google/raven/raven:14/AP1A.240305.019:user/release-keys",
+    selinuxStatus = "Enforcing"
+)
+
+private val previewUriHandler = object : UriHandler {
+    override fun openUri(uri: String) {}
+}
+
+@Composable
+private fun HomeScreenPreviewContent(
+    ksuVersion: Int?,
+    lkmMode: Boolean?,
+    isSafeMode: Boolean = false,
+    isLateLoadMode: Boolean = false,
+    isSELinuxPermissive: Boolean = false,
+    superuserCount: Int = 0,
+    moduleCount: Int = 0,
+    selinuxStatus: String = "Enforcing",
+) {
+    CompositionLocalProvider(LocalUriHandler provides previewUriHandler) {
+        Column(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            StatusCard(
+                kernelVersion = KernelVersion(6, 1, 0),
+                ksuVersion = ksuVersion,
+                lkmMode = lkmMode,
+                isSafeMode = isSafeMode,
+                isLateLoadMode = isLateLoadMode,
+                isSELinuxPermissive = isSELinuxPermissive,
+                superuserCount = superuserCount,
+                moduleCount = moduleCount,
+            )
+            InfoCard(previewSystemInfo.copy(selinuxStatus = selinuxStatus))
+            DonateCard()
+            LearnMoreCard()
+        }
+    }
+}
+
+@Preview(name = "Home Activated", showBackground = true)
+@Composable
+private fun HomeScreenActivatedPreview() {
+    HomeScreenPreviewContent(
+        ksuVersion = 12345,
+        lkmMode = true,
+        superuserCount = 5,
+        moduleCount = 10,
+    )
+}
+
+@Preview(name = "Home Not Activated", showBackground = true)
+@Composable
+private fun HomeScreenNotActivatedPreview() {
+    HomeScreenPreviewContent(
+        ksuVersion = null,
+        lkmMode = null,
+    )
+}
+
+@Preview(name = "Home Permissive", showBackground = true)
+@Composable
+private fun HomeScreenPermissivePreview() {
+    HomeScreenPreviewContent(
+        ksuVersion = null,
+        lkmMode = null,
+        isSELinuxPermissive = true,
+        selinuxStatus = "Permissive",
+    )
+}
+
+@Preview(name = "Home Jailbreak", showBackground = true)
+@Composable
+private fun HomeScreenJailbreakPreview() {
+    HomeScreenPreviewContent(
+        ksuVersion = 12345,
+        lkmMode = true,
+        isLateLoadMode = true,
+        superuserCount = 5,
+        moduleCount = 10,
+    )
 }
