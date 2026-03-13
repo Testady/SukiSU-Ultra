@@ -1,5 +1,6 @@
-package com.sukisu.ultra.ui.viewmodel
+package com.sukisu.ultra.ui.screen.settings
 
+import androidx.compose.runtime.Immutable
 import com.materialkolor.PaletteStyle
 import com.materialkolor.dynamiccolor.ColorSpec
 import com.sukisu.ultra.ui.UiMode
@@ -37,4 +38,25 @@ data class SettingsUiState(
 
     // Auto Jailbreak
     val autoJailbreak: Boolean = false
+)
+
+@Immutable
+data class SettingsScreenActions(
+    val onSetCheckUpdate: (Boolean) -> Unit,
+    val onSetCheckModuleUpdate: (Boolean) -> Unit,
+    val onOpenTheme: () -> Unit,
+    val onSetUiModeIndex: (Int) -> Unit,
+    val onOpenProfileTemplate: () -> Unit,
+    val onSetSuCompatMode: (Int) -> Unit,
+    val onSetKernelUmountEnabled: (Boolean) -> Unit,
+    val onSetDefaultUmountModules: (Boolean) -> Unit,
+    val onSetEnableWebDebugging: (Boolean) -> Unit,
+    val onSetAutoJailbreak: (Boolean) -> Unit,
+    val onOpenAbout: () -> Unit,
+    val onSetAlternativeIcon: (Boolean) -> Unit,
+    val onToggleLauncherIcon: (Boolean) -> Unit,
+    val onOpenTools: () -> Unit,
+    val onOpenKpm: () -> Unit,
+    val onOpenSusfsConfig: () -> Unit,
+    val onOpenSulog: () -> Unit,
 )

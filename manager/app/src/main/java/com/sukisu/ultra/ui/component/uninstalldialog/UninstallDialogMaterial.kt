@@ -14,7 +14,7 @@ import com.sukisu.ultra.R
 import com.sukisu.ultra.ui.component.dialog.rememberConfirmDialog
 import com.sukisu.ultra.ui.component.material.SegmentedColumn
 import com.sukisu.ultra.ui.component.material.SegmentedListItem
-import com.sukisu.ultra.ui.navigation3.Navigator
+import com.sukisu.ultra.ui.navigation3.LocalNavigator
 import com.sukisu.ultra.ui.navigation3.Route
 import com.sukisu.ultra.ui.screen.flash.FlashIt
 import com.sukisu.ultra.ui.screen.flash.UninstallType
@@ -22,10 +22,8 @@ import com.sukisu.ultra.ui.screen.flash.UninstallType.PERMANENT
 import com.sukisu.ultra.ui.screen.flash.UninstallType.RESTORE_STOCK_IMAGE
 
 @Composable
-fun UninstallDialogMaterial(
-    showDialog: MutableState<Boolean>,
-    navigator: Navigator
-) {
+fun UninstallDialogMaterial(showDialog: MutableState<Boolean>) {
+    val navigator = LocalNavigator.current
     val options = listOf(
         // TEMPORARY,
         PERMANENT,

@@ -13,6 +13,7 @@ import com.sukisu.ultra.data.repository.TemplateRepository
 import com.sukisu.ultra.data.repository.TemplateRepositoryImpl
 import com.sukisu.ultra.profile.Capabilities
 import com.sukisu.ultra.profile.Groups
+import com.sukisu.ultra.ui.screen.template.TemplateUiState
 import com.sukisu.ultra.ui.util.getAppProfileTemplate
 import org.json.JSONArray
 import org.json.JSONObject
