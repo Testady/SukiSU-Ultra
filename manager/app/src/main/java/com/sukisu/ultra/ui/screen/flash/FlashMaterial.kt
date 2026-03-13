@@ -1,7 +1,5 @@
 package com.sukisu.ultra.ui.screen.flash
 
-import android.content.Intent
-import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets

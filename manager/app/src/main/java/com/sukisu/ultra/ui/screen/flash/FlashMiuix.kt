@@ -1,6 +1,5 @@
 package com.sukisu.ultra.ui.screen.flash
 
-import android.content.Intent
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -38,14 +37,14 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.sukisu.ultra.R
+import com.sukisu.ultra.ui.component.KeyEventBlocker
+import com.sukisu.ultra.ui.theme.LocalEnableBlur
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
-import com.sukisu.ultra.R
-import com.sukisu.ultra.ui.component.KeyEventBlocker
-import com.sukisu.ultra.ui.theme.LocalEnableBlur
 import top.yukonga.miuix.kmp.basic.FloatingActionButton
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton

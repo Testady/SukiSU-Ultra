@@ -33,9 +33,6 @@ fun FlashScreen(flashIt: FlashIt) {
     var flashingStatus by rememberSaveable { mutableStateOf(FlashingStatus.FLASHING) }
     val needJailbreakWarning = flashIt is FlashIt.FlashBoot && Natives.isLateLoadMode
     var flashingEnabled by rememberSaveable { mutableStateOf(!needJailbreakWarning) }
-    var flashing by rememberSaveable {
-        mutableStateOf(FlashingStatus.FLASHING)
-    }
 
     FlashEffect(
         flashIt = flashIt,
@@ -47,8 +44,8 @@ fun FlashScreen(flashIt: FlashIt) {
         enabled = flashingEnabled,
     )
 
-    LaunchedEffect(flashing, flashIt) {
-        if (flashing == FlashingStatus.SUCCESS && flashIt is FlashIt.FlashModules) {
+    LaunchedEffect(flashingStatus, flashIt) {
+        if (flashingStatus == FlashingStatus.SUCCESS && flashIt is FlashIt.FlashModules) {
             val intent = activity?.intent
             val isFromExternalIntent = intent?.action?.let { action ->
                 action == Intent.ACTION_VIEW ||
