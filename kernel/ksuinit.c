@@ -137,29 +137,28 @@ int __init kernelsu_init(void)
 
 		ksu_lsm_hook_init();
 
-#if defined(CONFIG_KSU_MANUAL_HOOK) || defined(CONFIG_KSU_SUSFS)
-		ksu_setuid_hook_init();
-		ksu_sucompat_init();
-#endif
-
         ksu_allowlist_init();
         ksu_load_allow_list();
 
 #ifdef CONFIG_KSU_SYSCALL_HOOK
 		ksu_syscall_hook_manager_init();
 #endif
+#if defined(CONFIG_KSU_MANUAL_HOOK) || defined(CONFIG_KSU_SUSFS)
+		ksu_setuid_hook_init();
+		ksu_sucompat_init();
+#endif
 
         ksu_throne_tracker_init();
+
+#ifdef CONFIG_KSU_SUSFS
+		susfs_init();
+#endif // #ifdef CONFIG_KSU_SUSFS
 
 #if defined(CONFIG_KSU_SYSCALL_HOOK) || defined(CONFIG_KSU_SUSFS) ||           \
 	(LINUX_VERSION_CODE >= KERNEL_VERSION(6, 8, 0) &&                      \
 	 defined(CONFIG_KSU_MANUAL_HOOK))
 		ksu_observer_init();
 #endif
-
-#ifdef CONFIG_KSU_SUSFS
-		susfs_init();
-#endif // #ifdef CONFIG_KSU_SUSFS
 
         ksu_file_wrapper_init();
 
@@ -178,12 +177,12 @@ int __init kernelsu_init(void)
 
 		ksu_lsm_hook_init();
 
+        ksu_allowlist_init();
+
 #if defined(CONFIG_KSU_MANUAL_HOOK) || defined(CONFIG_KSU_SUSFS)
 		ksu_setuid_hook_init();
 		ksu_sucompat_init();
 #endif
-
-        ksu_allowlist_init();
 
         ksu_throne_tracker_init();
 
