@@ -9,6 +9,7 @@ import androidx.lifecycle.viewModelScope
 import com.sukisu.ultra.data.repository.KpmRepository
 import com.sukisu.ultra.data.repository.KpmRepositoryImpl
 import com.sukisu.ultra.ui.component.SearchStatus
+import com.sukisu.ultra.ui.screen.kpm.KpmUiState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

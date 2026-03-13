@@ -25,7 +25,7 @@ data class SystemInfo(
 )
 
 @Composable
-fun rememberSystemInfo(): SystemInfo {
+fun getSystemInfo(): SystemInfo {
     val context = LocalContext.current
     val uname = Os.uname()
     val managerVersion = getManagerVersion(context)
@@ -86,5 +86,23 @@ fun rememberSusfsInfo(
         }.getOrElse {
             SusfsInfoState(status = SusfsStatus.Error)
         }
+    }
+}
+
+@Composable
+fun rememberHookTypeLabel(
+    manualHookText: String,
+    inlineHookText: String,
+    tracepointHookText: String,
+    unknownHookText: String,
+): String {
+    return remember(manualHookText, inlineHookText, tracepointHookText, unknownHookText) {
+        val rawType = Natives.getHookType()
+        val localized = when (rawType) {
+            "Manual" -> manualHookText
+            "Tracepoint" -> tracepointHookText
+            else -> rawType
+        }
+        localized.ifBlank { unknownHookText }
     }
 }

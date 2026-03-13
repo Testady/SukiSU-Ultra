@@ -34,81 +34,28 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.key
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.dropUnlessResumed
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import com.sukisu.ultra.Natives
 import com.sukisu.ultra.R
 import com.sukisu.ultra.ui.component.KeyEventBlocker
-import com.sukisu.ultra.ui.navigation3.LocalNavigator
-import com.sukisu.ultra.ui.util.reboot
-import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FlashScreenMaterial(flashIt: FlashIt) {
-    val navigator = LocalNavigator.current
-    var text by rememberSaveable { mutableStateOf("") }
-    val logContent = rememberSaveable { StringBuilder() }
-    var showFloatAction by rememberSaveable { mutableStateOf(false) }
-
-    val context = LocalContext.current
-    val activity = LocalActivity.current
-    val scope = rememberCoroutineScope()
+fun FlashScreenMaterial(
+    state: FlashUiState,
+    actions: FlashScreenActions,
+) {
     val scrollState = rememberScrollState()
-    var flashing by rememberSaveable {
-        mutableStateOf(FlashingStatus.FLASHING)
-    }
-
-    val needJailbreakWarning = flashIt is FlashIt.FlashBoot && Natives.isLateLoadMode
-    var flashEnabled by rememberSaveable { mutableStateOf(!needJailbreakWarning) }
-
-    if (needJailbreakWarning && !flashEnabled) {
+    if (state.showJailbreakWarning) {
         JailbreakFlashWarningDialog(
-            onConfirm = { flashEnabled = true },
-            onDismiss = { navigator.pop() }
+            onConfirm = actions.onConfirmJailbreakWarning,
+            onDismiss = actions.onDismissJailbreakWarning,
         )
-    }
-
-    FlashEffect(
-        flashIt = flashIt,
-        text = text,
-        logContent = logContent,
-        onTextUpdate = { text = it },
-        onShowRebootChange = { showFloatAction = it },
-        onFlashingStatusChange = { flashing = it },
-        enabled = flashEnabled
-    )
-
-    // 如果是从外部打开的模块安装，延迟1秒后自动退出
-    LaunchedEffect(flashing, flashIt) {
-        if (flashing == FlashingStatus.SUCCESS && flashIt is FlashIt.FlashModules) {
-            val intent = activity?.intent
-            val isFromExternalIntent = intent?.action?.let { action ->
-                action == Intent.ACTION_VIEW ||
-                        action == Intent.ACTION_SEND ||
-                        action == Intent.ACTION_SEND_MULTIPLE
-            } ?: false
-
-            if (isFromExternalIntent) {
-                delay(1000)
-                activity.finish()
-            }
-        }
     }
 
     Scaffold(
@@ -117,7 +64,7 @@ fun FlashScreenMaterial(flashIt: FlashIt) {
                 title = {
                     Text(
                         stringResource(
-                            when (flashing) {
+                            when (state.flashingStatus) {
                                 FlashingStatus.FLASHING -> R.string.flashing
                                 FlashingStatus.SUCCESS -> R.string.flash_success
                                 FlashingStatus.FAILED -> R.string.flash_failed
@@ -126,27 +73,21 @@ fun FlashScreenMaterial(flashIt: FlashIt) {
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = dropUnlessResumed { navigator.pop() }) {
+                    IconButton(onClick = actions.onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, null)
                     }
                 },
                 actions = {
-                    IconButton(onClick = saveLog(logContent, context, scope)) {
+                    IconButton(onClick = actions.onSaveLog) {
                         Icon(Icons.Filled.Save, stringResource(R.string.save_log))
                     }
                 }
             )
         },
         floatingActionButton = {
-            if (showFloatAction) {
+            if (state.showRebootAction) {
                 ExtendedFloatingActionButton(
-                    onClick = {
-                        scope.launch {
-                            withContext(Dispatchers.IO) {
-                                reboot()
-                            }
-                        }
-                    },
+                    onClick = actions.onReboot,
                     icon = { Icon(Icons.Filled.Refresh, null) },
                     text = { Text(stringResource(R.string.reboot)) },
                     modifier = Modifier.padding(
@@ -174,13 +115,13 @@ fun FlashScreenMaterial(flashIt: FlashIt) {
                 )
                 .verticalScroll(scrollState)
         ) {
-            LaunchedEffect(text) {
+            LaunchedEffect(state.text) {
                 scrollState.animateScrollTo(scrollState.maxValue)
             }
             Spacer(Modifier.height(innerPadding.calculateTopPadding()))
             Text(
                 modifier = Modifier.padding(8.dp),
-                text = text,
+                text = state.text,
                 style = MaterialTheme.typography.bodySmall,
                 fontFamily = FontFamily.Monospace,
             )

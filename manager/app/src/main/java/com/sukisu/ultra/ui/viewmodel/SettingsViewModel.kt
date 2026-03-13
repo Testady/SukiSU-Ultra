@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import com.sukisu.ultra.data.repository.SettingsRepository
 import com.sukisu.ultra.data.repository.SettingsRepositoryImpl
+import com.sukisu.ultra.ui.screen.settings.SettingsUiState
 import com.sukisu.ultra.ui.theme.ColorMode
 
 class SettingsViewModel(
