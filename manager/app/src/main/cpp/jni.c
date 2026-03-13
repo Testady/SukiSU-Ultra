@@ -342,7 +342,8 @@ static int fork_dont_care() {
 	return 0;
 }
 
-NativeBridge(forkDontCareAndExecKsud, void, jstring ksud_path) {
+JNIEXPORT void JNICALL
+Java_com_sukisu_ultra_magica_AppZygotePreload_forkDontCareAndExecKsud(JNIEnv *env, jclass clazz, jstring ksud_path) {
 	const char *path = (*env)->GetStringUTFChars(env, ksud_path, nullptr);
 	LOGD("executing magica %s", path);
 	if (fork_dont_care() == 0) {

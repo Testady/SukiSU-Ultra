@@ -35,8 +35,8 @@ import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -62,8 +62,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import com.sukisu.ultra.KernelVersion
 import com.sukisu.ultra.BuildConfig
+import com.sukisu.ultra.KernelVersion
 import com.sukisu.ultra.Natives
 import com.sukisu.ultra.R
 import com.sukisu.ultra.getKernelVersion
@@ -166,11 +166,12 @@ fun HomePagerMiuix(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    if (isManager && BuildConfig.IS_PR_BUILD) {
-                        WarningCard(stringResource(id = R.string.home_pr_build_warning))
-                    }
-                    if (isManager && !BuildConfig.IS_PR_BUILD && Natives.isPrBuild) {
-                        WarningCard(stringResource(id = R.string.home_pr_kernel_warning))
+                    if (isManager) {
+                        if (BuildConfig.IS_PR_BUILD) {
+                            WarningCard(stringResource(id = R.string.home_pr_build_warning))
+                        } else if (Natives.isPrBuild) {
+                            WarningCard(stringResource(id = R.string.home_pr_kernel_warning))
+                        }
                     }
                     if (isManager && Natives.requireNewKernel()) {
                         WarningCard(

@@ -66,8 +66,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import com.sukisu.ultra.KernelVersion
 import com.sukisu.ultra.BuildConfig
+import com.sukisu.ultra.KernelVersion
 import com.sukisu.ultra.Natives
 import com.sukisu.ultra.R
 import com.sukisu.ultra.getKernelVersion
@@ -150,11 +150,12 @@ fun HomePagerMaterial(
                 onClickSuperuser = { mainState.animateToPage(1) },
                 onclickModule = { mainState.animateToPage(2) },
             )
-            if (isManager && BuildConfig.IS_PR_BUILD) {
-                WarningCard(stringResource(id = R.string.home_pr_build_warning))
-            }
-            if (isManager && !BuildConfig.IS_PR_BUILD && Natives.isPrBuild) {
-                WarningCard(stringResource(id = R.string.home_pr_kernel_warning))
+            if (isManager) {
+                if (BuildConfig.IS_PR_BUILD) {
+                    WarningCard(stringResource(id = R.string.home_pr_build_warning))
+                } else if (Natives.isPrBuild) {
+                    WarningCard(stringResource(id = R.string.home_pr_kernel_warning))
+                }
             }
             if (isManager && Natives.requireNewKernel()) {
                 WarningCard(

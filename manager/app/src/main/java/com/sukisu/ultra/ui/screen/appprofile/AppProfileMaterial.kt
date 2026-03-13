@@ -1,6 +1,5 @@
 package com.sukisu.ultra.ui.screen.appprofile
 
-import android.os.Build
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.expandVertically
@@ -169,12 +168,7 @@ fun AppProfileScreenMaterial(
             appUid = uid,
             sharedUserId = if (isUidGroup) sharedUserId else "",
             appVersionName = if (isUidGroup) "" else (appInfo.packageInfo.versionName ?: ""),
-            appVersionCode = if (isUidGroup) 0L else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                appInfo.packageInfo.longVersionCode
-            } else {
-                @Suppress("DEPRECATION")
-                appInfo.packageInfo.versionCode.toLong()
-            },
+            appVersionCode = if (isUidGroup) 0L else appInfo.packageInfo.longVersionCode,
             profile = profile,
             isUidGroup = isUidGroup,
             affectedApps = sameUidApps,
@@ -247,7 +241,9 @@ private fun AppProfileInner(
 
     Column(modifier = modifier) {
         SegmentedColumn(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
             content = listOf(
                 {
                     SegmentedListItem(
@@ -468,7 +464,9 @@ private fun ProfileBox(
     onModeChange: (Mode) -> Unit,
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
     ) {
         val options = listOf(

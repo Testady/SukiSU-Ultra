@@ -100,13 +100,14 @@ fun SuperUserPagerMaterial(navigator: Navigator, bottomInnerPadding: Dp) {
         else LinearOutSlowInEasing.transform(pullToRefreshState.distanceFraction).coerceIn(0f, 1f)
     }
 
-    LaunchedEffect(key1 = navigator) {
+    LaunchedEffect(key1 = Unit) {
         when {
             uiState.appList.isEmpty() -> {
                 viewModel.setShowSystemApps(prefs.getBoolean("show_system_apps", false))
                 viewModel.setShowOnlyPrimaryUserApps(prefs.getBoolean("show_only_primary_user_apps", false))
                 viewModel.loadAppList()
             }
+
             viewModel.isNeedRefresh -> {
                 viewModel.loadAppList(resort = false)
             }
@@ -220,6 +221,7 @@ fun SuperUserPagerMaterial(navigator: Navigator, bottomInnerPadding: Dp) {
                             ) {
                                 closeSearch()
                                 navigator.push(Route.AppProfile(group.uid, group.primary.packageName))
+                                viewModel.markNeedRefresh()
                             }
                             AnimatedVisibility(
                                 visible = group.apps.size > 1,
@@ -232,6 +234,7 @@ fun SuperUserPagerMaterial(navigator: Navigator, bottomInnerPadding: Dp) {
                                         SimpleAppItem(app) {
                                             closeSearch()
                                             navigator.push(Route.AppProfile(group.uid, group.primary.packageName))
+                                            viewModel.markNeedRefresh()
                                         }
                                     }
                                 }
@@ -282,6 +285,7 @@ fun SuperUserPagerMaterial(navigator: Navigator, bottomInnerPadding: Dp) {
                         onToggleExpand = onToggleExpand,
                     ) {
                         navigator.push(Route.AppProfile(group.uid, group.primary.packageName))
+                        viewModel.markNeedRefresh()
                     }
                     AnimatedVisibility(
                         visible = expanded && group.apps.size > 1,
@@ -293,6 +297,7 @@ fun SuperUserPagerMaterial(navigator: Navigator, bottomInnerPadding: Dp) {
                             filteredApps.forEach { app ->
                                 SimpleAppItem(app) {
                                     navigator.push(Route.AppProfile(group.uid, group.primary.packageName))
+                                    viewModel.markNeedRefresh()
                                 }
                             }
                         }
@@ -413,7 +418,8 @@ private fun GroupItem(
                         )
                     }
                     if (applicationInfo?.flags?.and(ApplicationInfo.FLAG_SYSTEM) != 0
-                        || applicationInfo.flags.and(ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0) {
+                        || applicationInfo.flags.and(ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0
+                    ) {
                         StatusTag(
                             label = "SYSTEM",
                             modifier = Modifier.padding(top = 4.dp),

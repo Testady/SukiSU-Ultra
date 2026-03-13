@@ -4,7 +4,6 @@ import android.content.Context
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.add
@@ -249,7 +248,7 @@ private fun AllowlistBackupSectionMaterial(
                             tint = MaterialTheme.colorScheme.onSurface
                         )
                     },
-                    modifier = Modifier.clickable {
+                    onClick = {
                         backupLauncher.launch("ksu_allowlist_backup.bin")
                     }
                 )
@@ -265,7 +264,7 @@ private fun AllowlistBackupSectionMaterial(
                             tint = MaterialTheme.colorScheme.onSurface
                         )
                     },
-                    modifier = Modifier.clickable {
+                    onClick = {
                         restoreLauncher.launch(arrayOf("*/*"))
                     }
                 )

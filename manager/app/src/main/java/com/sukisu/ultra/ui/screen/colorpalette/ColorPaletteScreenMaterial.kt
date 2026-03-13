@@ -50,6 +50,8 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.rounded.Adb
 import androidx.compose.material.icons.rounded.AspectRatio
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.DesignServices
+import androidx.compose.material.icons.rounded.Style
 import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -63,10 +65,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.ToggleButton
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
-import androidx.compose.material3.expressiveLightColorScheme
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -260,6 +260,7 @@ fun ColorPaletteScreenMaterial() {
                         {
                             val styles = PaletteStyle.entries
                             SegmentedDropdownItem(
+                                icon = Icons.Rounded.Style,
                                 title = stringResource(R.string.settings_color_style),
                                 items = styles.map { it.name },
                                 selectedIndex = styles.indexOf(colorStyle),
@@ -271,6 +272,7 @@ fun ColorPaletteScreenMaterial() {
                         {
                             val specs = ColorSpec.SpecVersion.entries
                             SegmentedDropdownItem(
+                                icon = Icons.Rounded.DesignServices,
                                 title = stringResource(R.string.settings_color_spec),
                                 items = specs.map { it.name },
                                 selectedIndex = specs.indexOf(colorSpec).coerceAtLeast(0),
@@ -375,31 +377,27 @@ private fun ThemePreviewCard(
     val screenRatio = screenWidth / screenHeight
     val dynamicColor = keyColor == 0
 
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val baseScheme = if (isDark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-            rememberDynamicColorScheme(
-                seedColor = Color.Unspecified,
-                isDark = isDark,
-                style = paletteStyle,
-                specVersion = colorSpec,
-                primary = baseScheme.primary,
-                secondary = baseScheme.secondary,
-                tertiary = baseScheme.tertiary,
-                neutral = baseScheme.surface,
-                neutralVariant = baseScheme.surfaceVariant,
-                error = baseScheme.error
-            )
-        }
-        !dynamicColor -> rememberDynamicColorScheme(
+    val colorScheme = if (dynamicColor) {
+        val baseScheme = if (isDark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+        rememberDynamicColorScheme(
+            seedColor = Color.Unspecified,
+            isDark = isDark,
+            style = paletteStyle,
+            specVersion = colorSpec,
+            primary = baseScheme.primary,
+            secondary = baseScheme.secondary,
+            tertiary = baseScheme.tertiary,
+            neutral = baseScheme.surface,
+            neutralVariant = baseScheme.surfaceVariant,
+            error = baseScheme.error
+        )
+    } else {
+        rememberDynamicColorScheme(
             seedColor = Color(keyColor),
             isDark = isDark,
             style = paletteStyle,
             specVersion = colorSpec,
         )
-        else -> {
-            if (isDark) darkColorScheme() else expressiveLightColorScheme()
-        }
     }
 
     Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
@@ -434,7 +432,9 @@ private fun ThemePreviewCard(
                 }
 
                 Box(
-                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
                     contentAlignment = Alignment.TopStart
                 ) {
                     Column(
@@ -443,7 +443,9 @@ private fun ThemePreviewCard(
                     ) {
                         TonalCard(
                             containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                            modifier = Modifier.fillMaxWidth().height(40.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(40.dp),
                             shape = RoundedCornerShape(12.dp),
                             content = { }
                         )
@@ -452,18 +454,24 @@ private fun ThemePreviewCard(
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             TonalCard(
-                                modifier = Modifier.weight(1f).height(32.dp),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(32.dp),
                                 shape = RoundedCornerShape(12.dp),
                                 content = { }
                             )
                             TonalCard(
-                                modifier = Modifier.weight(1f).height(32.dp),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(32.dp),
                                 shape = RoundedCornerShape(12.dp),
                                 content = { }
                             )
                         }
                         TonalCard(
-                            modifier = Modifier.fillMaxWidth().height(96.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(96.dp),
                             shape = RoundedCornerShape(12.dp),
                             content = { }
                         )
@@ -477,7 +485,7 @@ private fun ThemePreviewCard(
                 ) {
                     Row(
                         modifier = Modifier
-                            .height(56.dp)
+                            .height(40.dp)
                             .fillMaxWidth()
                             .padding(horizontal = 8.dp),
                         verticalAlignment = Alignment.CenterVertically
@@ -503,23 +511,19 @@ private fun ColorButtonMaterial(
 ) {
     val context = LocalContext.current
     val colorScheme = if (color == Color.Unspecified) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val baseScheme = if (isDark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-            rememberDynamicColorScheme(
-                seedColor = Color.Unspecified,
-                isDark = isDark,
-                style = paletteStyle,
-                specVersion = colorSpec,
-                primary = baseScheme.primary,
-                secondary = baseScheme.secondary,
-                tertiary = baseScheme.tertiary,
-                neutral = baseScheme.surface,
-                neutralVariant = baseScheme.surfaceVariant,
-                error = baseScheme.error
-            )
-        } else {
-            MaterialTheme.colorScheme
-        }
+        val baseScheme = if (isDark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+        rememberDynamicColorScheme(
+            seedColor = Color.Unspecified,
+            isDark = isDark,
+            style = paletteStyle,
+            specVersion = colorSpec,
+            primary = baseScheme.primary,
+            secondary = baseScheme.secondary,
+            tertiary = baseScheme.tertiary,
+            neutral = baseScheme.surface,
+            neutralVariant = baseScheme.surfaceVariant,
+            error = baseScheme.error
+        )
     } else {
         rememberDynamicColorScheme(
             seedColor = color,
