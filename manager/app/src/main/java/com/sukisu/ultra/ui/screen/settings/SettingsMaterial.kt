@@ -34,7 +34,6 @@ import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Update
 import androidx.compose.material.icons.rounded.Android
 import androidx.compose.material.icons.rounded.Dashboard
-import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.UploadFile
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi

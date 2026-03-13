@@ -66,8 +66,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import com.sukisu.ultra.KernelVersion
 import com.sukisu.ultra.BuildConfig
+import com.sukisu.ultra.KernelVersion
 import com.sukisu.ultra.Natives
 import com.sukisu.ultra.R
 import com.sukisu.ultra.getKernelVersion
