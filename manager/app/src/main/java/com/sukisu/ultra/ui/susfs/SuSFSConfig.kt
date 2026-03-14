@@ -45,7 +45,6 @@ import com.sukisu.ultra.ui.susfs.content.SusPathsContent
 import com.sukisu.ultra.ui.susfs.util.SuSFSManager
 import com.sukisu.ultra.ui.util.isAbDevice
 import com.sukisu.ultra.ui.susfs.viewmodel.SuSFSViewModel
-import com.sukisu.ultra.ui.susfs.viewmodel.SuSFSUiState
 import kotlinx.coroutines.launch
 import androidx.lifecycle.viewmodel.compose.viewModel
 import top.yukonga.miuix.kmp.basic.*
@@ -525,7 +524,7 @@ fun SuSFSConfigScreen() {
                             onEditPath = { path ->
                                 viewModel.openAddPathDialog(path)
                             },
-                            forceRefreshApps = uiState.selectedTab == SuSFSTab.SUS_PATHS,
+                            forceRefreshApps = true,
                             onReset = { viewModel.toggleResetPathsDialog(true) }
                         )
                     }

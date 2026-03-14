@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.sukisu.ultra.ui.susfs.repository.SuSFSRepository
 import com.sukisu.ultra.ui.susfs.repository.SuSFSRepositoryImpl
 import com.sukisu.ultra.ui.susfs.SuSFSTab
+import com.sukisu.ultra.ui.susfs.SuSFSUiState
 import com.sukisu.ultra.ui.susfs.util.SuSFSManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,10 +25,6 @@ class SuSFSViewModel(
 
     fun setSelectedTab(tab: SuSFSTab) {
         _uiState.update { it.copy(selectedTab = tab) }
-    }
-
-    fun markNavigatingBack() {
-        _uiState.update { it.copy(isNavigatingBack = true) }
     }
 
     fun loadInitial(context: Context) {

@@ -1,7 +1,6 @@
-package com.sukisu.ultra.ui.susfs.viewmodel
+package com.sukisu.ultra.ui.susfs
 
 import androidx.compose.runtime.Immutable
-import com.sukisu.ultra.ui.susfs.SuSFSTab
 import com.sukisu.ultra.ui.susfs.util.SuSFSManager
 
 @Immutable
@@ -67,4 +66,3 @@ data class SuSFSUiState(
 
     val error: Throwable? = null,
 )
-

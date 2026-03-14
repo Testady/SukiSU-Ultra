@@ -174,6 +174,20 @@ fun SettingPagerMiuix(
                         selectedIndex = if (uiState.uiMode == UiMode.Material.value) 1 else 0,
                         onSelectedIndexChange = actions.onSetUiModeIndex
                     )
+                    
+                    SuperArrow(
+                        title = stringResource(id = R.string.settings_theme),
+                        summary = stringResource(id = R.string.settings_theme_summary),
+                        startAction = {
+                            Icon(
+                                Icons.Rounded.Palette,
+                                modifier = Modifier.padding(end = 6.dp),
+                                contentDescription = stringResource(id = R.string.settings_theme),
+                                tint = colorScheme.onBackground
+                            )
+                        },
+                        onClick = actions.onOpenTheme
+                    )
                     SuperSwitch(
                         title = stringResource(id = R.string.icon_switch_title),
                         summary = stringResource(id = R.string.icon_switch_summary),
@@ -190,20 +204,6 @@ fun SettingPagerMiuix(
                             actions.onSetAlternativeIcon(it)
                             actions.onToggleLauncherIcon(it)
                         }
-                    )
-                    
-                    SuperArrow(
-                        title = stringResource(id = R.string.settings_theme),
-                        summary = stringResource(id = R.string.settings_theme_summary),
-                        startAction = {
-                            Icon(
-                                Icons.Rounded.Palette,
-                                modifier = Modifier.padding(end = 6.dp),
-                                contentDescription = stringResource(id = R.string.settings_theme),
-                                tint = colorScheme.onBackground
-                            )
-                        },
-                        onClick = actions.onOpenTheme
                     )
                 }
 
