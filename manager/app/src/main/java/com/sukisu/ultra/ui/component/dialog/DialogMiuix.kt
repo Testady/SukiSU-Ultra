@@ -27,14 +27,13 @@ import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.InfiniteProgressIndicator
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
-import top.yukonga.miuix.kmp.extra.SuperDialog
+import top.yukonga.miuix.kmp.extra.WindowDialog
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
 fun LoadingDialogMiuix(showDialog: MutableState<Boolean>) {
-    SuperDialog(
-        show = showDialog,
-        onDismissRequest = {},
+    WindowDialog(
+        show = showDialog.value,
         content = {
             Box(
                 modifier = Modifier.fillMaxWidth(),
@@ -50,7 +49,8 @@ fun LoadingDialogMiuix(showDialog: MutableState<Boolean>) {
                     Text(
                         modifier = Modifier.padding(start = 12.dp),
                         text = stringResource(R.string.processing),
-                        fontWeight = FontWeight.Medium
+                        fontWeight = FontWeight.Medium,
+                        color = MiuixTheme.colorScheme.onBackground
                     )
                 }
             }
@@ -65,9 +65,9 @@ fun ConfirmDialogMiuix(
     dismiss: () -> Unit,
     showDialog: MutableState<Boolean>
 ) {
-    SuperDialog(
+    WindowDialog(
+        show = showDialog.value,
         modifier = Modifier.windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Top)),
-        show = showDialog,
         title = visuals.title,
         onDismissRequest = {
             dismiss()
@@ -80,7 +80,10 @@ fun ConfirmDialogMiuix(
                         when {
                             visuals.isMarkdown -> Markdown(content = content)
                             visuals.isHtml -> GithubMarkdown(content = content)
-                            else -> Text(text = content)
+                            else -> Text(
+                                text = content,
+                                color = MiuixTheme.colorScheme.onBackground
+                            )
                         }
                     }
                     Row(

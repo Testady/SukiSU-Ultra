@@ -381,7 +381,7 @@ fun AddPathDialog(
 
     if (showDialogState.value) {
         SuperDialog(
-            show = showDialogState,
+            show = showDialogState.value,
             title = stringResource(titleRes),
             onDismissRequest = {
                 onDismiss()
@@ -502,7 +502,7 @@ fun AddAppPathDialog(
 
     if (showDialogState.value) {
         SuperDialog(
-            show = showDialogState,
+            show = showDialogState.value,
             title = stringResource(R.string.susfs_add_app_path),
             onDismissRequest = {
                 onDismiss()
@@ -1269,7 +1269,7 @@ fun FeatureStatusCard(
 
     if (showLogConfigDialogState.value) {
         SuperDialog(
-            show = showLogConfigDialogState,
+            show = showLogConfigDialogState.value,
             title = stringResource(R.string.susfs_log_config_title),
             onDismissRequest = {
                 // 恢复原始状态

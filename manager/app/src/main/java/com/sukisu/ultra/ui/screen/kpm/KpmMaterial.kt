@@ -6,68 +6,24 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.calculateEndPadding
-import androidx.compose.foundation.layout.calculateStartPadding
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.only
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBars
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Inventory
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.material3.rememberTopAppBarState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -75,35 +31,24 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.edit
 import com.sukisu.ultra.R
+import com.sukisu.ultra.ui.viewmodel.KpmViewModel
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.TextButton
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun KpmMaterial(
-    state: KpmUiState,
+    viewModel: KpmViewModel,
     actions: KpmActions,
-    bottomInnerPadding: Dp,
-    showInstallModeDialog: Boolean,
-    moduleName: String?,
-    context: Context,
-    scope: kotlinx.coroutines.CoroutineScope,
-    showToast: suspend (String) -> Unit,
-    kpmInstallSuccess: String,
-    kpmInstallFailed: String,
-    kpmInstallMode: String,
-    kpmInstallModeLoad: String,
-    kpmInstallModeEmbed: String,
-    cancel: String,
+    bottomInnerPadding: Dp = 0.dp
 ) {
-    val layoutDirection = LocalLayoutDirection.current
-
+    val state by viewModel.uiState.collectAsState()
     val listState = rememberLazyListState()
 
     val showEmptyState by remember {
@@ -114,12 +59,10 @@ fun KpmMaterial(
 
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
 
-    LaunchedEffect(Unit) {
-        while(true) {
-            actions.onRefresh()
-            delay(5000)
-        }
-    }
+    val kpmInstallMode = stringResource(R.string.kpm_install_mode)
+    val kpmInstallModeLoad = stringResource(R.string.kpm_install_mode_load)
+    val kpmInstallModeEmbed = stringResource(R.string.kpm_install_mode_embed)
+    val cancel = stringResource(R.string.cancel)
 
     val scrollDistance = remember { mutableFloatStateOf(0f) }
     var fabVisible by remember { mutableStateOf(true) }
@@ -152,30 +95,60 @@ fun KpmMaterial(
         animationSpec = tween(durationMillis = 350)
     )
 
-    if (showInstallModeDialog) {
-        KpmInstallModeDialogMaterial(
-            moduleName = moduleName,
-            kpmInstallMode = kpmInstallMode,
-            kpmInstallModeLoad = kpmInstallModeLoad,
-            kpmInstallModeEmbed = kpmInstallModeEmbed,
-            cancel = cancel,
-            onClearInstallState = actions.onClearInstallState,
-            onInstall = { isEmbed ->
-                scope.launch {
-                    val tempFile = actions.onTempFileForInstallChange
-                    tempFile?.let {
-                        handleModuleInstall(
-                            tempFile = it,
-                            isEmbed = isEmbed,
-                            showToast = showToast,
-                            kpmInstallSuccess = kpmInstallSuccess,
-                            kpmInstallFailed = kpmInstallFailed,
-                            onRefresh = actions.onRefresh
+    if (state.showInstallModeDialog) {
+        AlertDialog(
+            onDismissRequest = { actions.onDismissInstallDialog() },
+            title = { Text(kpmInstallMode) },
+            text = {
+                Column {
+                    state.tempModuleName?.let {
+                        Text(text = stringResource(R.string.kpm_install_mode_description, it))
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = { actions.onConfirmInstall("", false) },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Download,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(kpmInstallModeLoad)
+                        }
+
+                        Button(
+                            onClick = { actions.onConfirmInstall("", true) },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Inventory,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(kpmInstallModeEmbed)
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        TextButton(
+                            text = cancel,
+                            onClick = { actions.onDismissInstallDialog() },
+                            modifier = Modifier.weight(1f)
                         )
                     }
-                    actions.onClearInstallState()
                 }
-            }
+            },
+            confirmButton = {},
+            dismissButton = {}
         )
     }
 
@@ -188,7 +161,7 @@ fun KpmMaterial(
                         onClick = actions.onRefresh
                     ) {
                         Icon(
-                            imageVector = Icons.Filled.Settings,
+                            imageVector = Icons.Filled.Refresh,
                             contentDescription = stringResource(R.string.refresh),
                             tint = MaterialTheme.colorScheme.onSurface
                         )
@@ -204,16 +177,16 @@ fun KpmMaterial(
             AnimatedVisibility(visible = fabVisible) {
                 FloatingActionButton(
                     modifier = Modifier
-                        .offset(y = offsetHeight)
+                        .offset { IntOffset(0, offsetHeight.roundToPx()) }
                         .padding(bottom = bottomInnerPadding + 20.dp, end = 20.dp),
-                    onClick = actions.onInstallClick,
+                    onClick = actions.onRequestInstall,
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 ) {
                     Icon(
                         painter = painterResource(id = R.drawable.package_import),
                         contentDescription = null,
-                        tint = androidx.compose.ui.graphics.Color.White,
+                        tint = Color.White,
                         modifier = Modifier.size(40.dp)
                     )
                 }
@@ -221,6 +194,8 @@ fun KpmMaterial(
         },
         contentWindowInsets = WindowInsets.systemBars.only(WindowInsetsSides.Horizontal)
     ) { innerPadding ->
+        val layoutDirection = LocalLayoutDirection.current
+
         if (showEmptyState) {
             EmptyStateViewMaterial(
                 innerPadding = innerPadding,
@@ -235,78 +210,10 @@ fun KpmMaterial(
                 nestedScrollConnection = nestedScrollConnection,
                 innerPadding = innerPadding,
                 bottomInnerPadding = bottomInnerPadding,
-                layoutDirection = layoutDirection,
-                context = context
+                layoutDirection = layoutDirection
             )
         }
     }
-}
-
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
-@Composable
-private fun KpmInstallModeDialogMaterial(
-    moduleName: String?,
-    kpmInstallMode: String,
-    kpmInstallModeLoad: String,
-    kpmInstallModeEmbed: String,
-    cancel: String,
-    onClearInstallState: () -> Unit,
-    onInstall: (Boolean) -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onClearInstallState,
-        title = { Text(kpmInstallMode) },
-        text = {
-            Column {
-                moduleName?.let {
-                    Text(text = stringResource(R.string.kpm_install_mode_description, it))
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Button(
-                        onClick = { onInstall(false) },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Download,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(kpmInstallModeLoad)
-                    }
-
-                    Button(
-                        onClick = { onInstall(true) },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Inventory,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(kpmInstallModeEmbed)
-                    }
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    TextButton(
-                        text = cancel,
-                        onClick = onClearInstallState,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-            }
-        },
-        confirmButton = {},
-        dismissButton = {}
-    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -314,13 +221,13 @@ private fun KpmInstallModeDialogMaterial(
 private fun KpmListMaterial(
     state: KpmUiState,
     actions: KpmActions,
-    scrollBehavior: androidx.compose.material3.TopAppBarScrollBehavior,
+    scrollBehavior: TopAppBarScrollBehavior,
     nestedScrollConnection: NestedScrollConnection,
     innerPadding: PaddingValues,
     bottomInnerPadding: Dp,
-    layoutDirection: LayoutDirection,
-    context: Context
+    layoutDirection: LayoutDirection
 ) {
+    val context = LocalContext.current
     val sharedPreferences = context.getSharedPreferences("app_preferences", Context.MODE_PRIVATE)
     var isNoticeClosed by remember { mutableStateOf(sharedPreferences.getBoolean("is_notice_closed", false)) }
 
@@ -404,12 +311,9 @@ private fun KpmListMaterial(
                 items(state.moduleList) { module ->
                     KpmModuleItemMaterial(
                         module = module,
-                        onUninstall = {
-                            actions.onUninstall(module.id)
-                        },
-                        onControl = {
-                            actions.onControl(module.id)
-                        }
+                        state = state,
+                        actions = actions,
+                        onUninstall = { actions.onRequestUninstall(module.id) }
                     )
                 }
                 item {
@@ -422,10 +326,62 @@ private fun KpmListMaterial(
 
 @Composable
 private fun KpmModuleItemMaterial(
-    module: com.sukisu.ultra.ui.viewmodel.KpmViewModel.ModuleInfo,
-    onUninstall: () -> Unit,
-    onControl: () -> Unit
+    module: KpmViewModel.ModuleInfo,
+    state: KpmUiState,
+    actions: KpmActions,
+    onUninstall: () -> Unit
 ) {
+    val showInputDialog = state.inputDialogState.visible && state.inputDialogState.moduleId == module.id
+
+    if (showInputDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                actions.onHideInputDialog()
+            },
+            title = { Text(stringResource(R.string.kpm_control)) },
+            text = {
+                Column {
+                    OutlinedTextField(
+                        value = state.inputDialogState.args,
+                        onValueChange = { actions.onInputArgsChange(it) },
+                        label = { Text(stringResource(R.string.kpm_args)) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    if (state.inputDialogState.args.isEmpty() && module.args.isNotEmpty()) {
+                        Text(
+                            text = module.args,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = MaterialTheme.typography.bodySmall.fontSize,
+                            modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        TextButton(
+                            onClick = { actions.onHideInputDialog() },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(stringResource(R.string.cancel))
+                        }
+                        Spacer(modifier = Modifier.width(20.dp))
+                        Button(
+                            onClick = { actions.onExecuteControl() },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(stringResource(R.string.confirm))
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {}
+        )
+    }
+
     Card(
         modifier = Modifier
             .padding(horizontal = 12.dp)
@@ -495,7 +451,7 @@ private fun KpmModuleItemMaterial(
                     exit = fadeOut()
                 ) {
                     IconButton(
-                        onClick = onControl,
+                        onClick = { actions.onShowInputDialog(module.id) },
                     ) {
                         Icon(
                             imageVector = Icons.Filled.Settings,
@@ -545,7 +501,7 @@ private fun EmptyStateViewMaterial(
             verticalArrangement = Arrangement.Center
         ) {
             Icon(
-                imageVector = Icons.Filled.Info,
+                imageVector = Icons.Filled.Code,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
                 modifier = Modifier

@@ -8,51 +8,15 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.border
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.add
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.calculateEndPadding
-import androidx.compose.foundation.layout.calculateStartPadding
-import androidx.compose.foundation.layout.displayCutout
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.ime
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.only
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Inventory
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -61,6 +25,7 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.SubcomposeLayout
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -68,6 +33,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -76,46 +42,31 @@ import com.sukisu.ultra.R
 import com.sukisu.ultra.ui.component.miuix.SearchBox
 import com.sukisu.ultra.ui.component.miuix.SearchPager
 import com.sukisu.ultra.ui.theme.LocalEnableBlur
+import com.sukisu.ultra.ui.viewmodel.KpmViewModel
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import top.yukonga.miuix.kmp.basic.Button
-import top.yukonga.miuix.kmp.basic.Card
-import top.yukonga.miuix.kmp.basic.HorizontalDivider
-import top.yukonga.miuix.kmp.basic.IconButton
-import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
-import top.yukonga.miuix.kmp.basic.PullToRefresh
-import top.yukonga.miuix.kmp.basic.Scaffold
-import top.yukonga.miuix.kmp.basic.ScrollBehavior
-import top.yukonga.miuix.kmp.basic.TextButton
-import top.yukonga.miuix.kmp.basic.rememberPullToRefreshState
+import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.extra.SuperDialog
+import top.yukonga.miuix.kmp.icon.MiuixIcons
+import top.yukonga.miuix.kmp.icon.extended.Refresh
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 
 @Composable
 fun KpmMiuix(
-    state: KpmUiState,
+    viewModel: KpmViewModel,
     actions: KpmActions,
-    bottomInnerPadding: Dp,
-    showInstallModeDialog: Boolean,
-    moduleName: String?,
-    context: Context,
-    scope: kotlinx.coroutines.CoroutineScope,
-    showToast: suspend (String) -> Unit,
-    kpmInstallSuccess: String,
-    kpmInstallFailed: String,
-    kpmInstallMode: String,
-    kpmInstallModeLoad: String,
-    kpmInstallModeEmbed: String,
-    cancel: String,
+    bottomInnerPadding: Dp = 0.dp
 ) {
-    val enableBlur = LocalEnableBlur.current
+    val state by viewModel.uiState.collectAsState()
     val listState = rememberLazyListState()
+
+    val enableBlur = LocalEnableBlur.current
 
     val showEmptyState by remember {
         derivedStateOf {
@@ -138,12 +89,10 @@ fun KpmMiuix(
         HazeStyle.Unspecified
     }
 
-    LaunchedEffect(Unit) {
-        while(true) {
-            actions.onRefresh()
-            delay(5000)
-        }
-    }
+    val kpmInstallMode = stringResource(R.string.kpm_install_mode)
+    val kpmInstallModeLoad = stringResource(R.string.kpm_install_mode_load)
+    val kpmInstallModeEmbed = stringResource(R.string.kpm_install_mode_embed)
+    val cancel = stringResource(R.string.cancel)
 
     val scrollDistance = remember { mutableFloatStateOf(0f) }
     var fabVisible by remember { mutableStateOf(true) }
@@ -176,43 +125,95 @@ fun KpmMiuix(
         animationSpec = tween(durationMillis = 350)
     )
 
-    if (showInstallModeDialog) {
-        KpmInstallModeDialogMiuix(
-            moduleName = moduleName,
-            kpmInstallMode = kpmInstallMode,
-            kpmInstallModeLoad = kpmInstallModeLoad,
-            kpmInstallModeEmbed = kpmInstallModeEmbed,
-            cancel = cancel,
-            onClearInstallState = actions.onClearInstallState,
-            onInstall = { isEmbed ->
-                scope.launch {
-                    val tempFile = actions.onTempFileForInstallChange
-                    tempFile?.let {
-                        handleModuleInstall(
-                            tempFile = it,
-                            isEmbed = isEmbed,
-                            showToast = showToast,
-                            kpmInstallSuccess = kpmInstallSuccess,
-                            kpmInstallFailed = kpmInstallFailed,
-                            onRefresh = actions.onRefresh
+    if (state.showInstallModeDialog) {
+        SuperDialog(
+            show = true,
+            title = kpmInstallMode,
+            onDismissRequest = {
+                actions.onDismissInstallDialog()
+            },
+            content = {
+                Column {
+                    state.tempModuleName?.let {
+                        Text(
+                            text = stringResource(R.string.kpm_install_mode_description, it),
+                            color = colorScheme.onBackground
                         )
                     }
-                    actions.onClearInstallState()
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = { actions.onConfirmInstall("", false) },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Download,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp).padding(end = 4.dp)
+                            )
+                            Text(kpmInstallModeLoad)
+                        }
+
+                        Button(
+                            onClick = { actions.onConfirmInstall("", true) },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Inventory,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp).padding(end = 4.dp)
+                            )
+                            Text(kpmInstallModeEmbed)
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        TextButton(
+                            text = cancel,
+                            onClick = { actions.onDismissInstallDialog() },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
             }
         )
     }
 
     Scaffold(
+        topBar = {
+            state.searchStatus.TopAppBarAnim(hazeState = hazeState, hazeStyle = hazeStyle) {
+                TopAppBar(
+                    color = if (enableBlur) Color.Transparent else colorScheme.surface,
+                    title = stringResource(R.string.kpm_title),
+                    actions = {
+                        IconButton(
+                            onClick = actions.onRefresh
+                        ) {
+                            Icon(
+                                imageVector = MiuixIcons.Refresh,
+                                contentDescription = stringResource(R.string.refresh),
+                                tint = colorScheme.onBackground
+                            )
+                        }
+                    },
+                    scrollBehavior = scrollBehavior
+                )
+            }
+        },
         floatingActionButton = {
             AnimatedVisibility(visible = fabVisible) {
-                top.yukonga.miuix.kmp.basic.FloatingActionButton(
+                FloatingActionButton(
                     modifier = Modifier
-                        .offset(y = offsetHeight)
+                        .offset { IntOffset(0, offsetHeight.roundToPx()) }
                         .padding(bottom = bottomInnerPadding + 20.dp, end = 20.dp)
                         .border(0.05.dp, colorScheme.outline.copy(alpha = 0.5f), CircleShape),
                     shadowElevation = 0.dp,
-                    onClick = actions.onInstallClick,
+                    onClick = actions.onRequestInstall,
                     content = {
                         Icon(
                             painter = painterResource(id = R.drawable.package_import),
@@ -226,67 +227,44 @@ fun KpmMiuix(
         },
         popupHost = {
             state.searchStatus.SearchPager(
-                onSearchStatusChange = { /* handled in KpmScreen */ },
-                defaultResult = {
-                    LazyColumn {
-                        item {
-                            Spacer(Modifier.height(6.dp))
-                        }
-                        items(state.moduleList) { module ->
-                            KpmModuleItemMiuix(
-                                module = module,
-                                onUninstall = {
-                                    actions.onUninstall(module.id)
-                                },
-                                onControl = {
-                                    actions.onControl(module.id)
-                                }
-                            )
-                        }
-                        item {
-                            val imeBottomPadding = WindowInsets.ime.asPaddingValues().calculateBottomPadding()
-                            Spacer(Modifier.height(maxOf(bottomInnerPadding, imeBottomPadding)))
-                        }
-                    }
-                },
+                onSearchStatusChange = actions.onSearchStatusChange,
+                defaultResult = {},
                 searchBarTopPadding = dynamicTopPadding,
-                result = {
-                    LazyColumn {
-                        item {
-                            Spacer(Modifier.height(6.dp))
-                        }
-                        items(state.moduleList) { module ->
-                            KpmModuleItemMiuix(
-                                module = module,
-                                onUninstall = {
-                                    actions.onUninstall(module.id)
-                                },
-                                onControl = {
-                                    actions.onControl(module.id)
-                                }
-                            )
-                        }
-                        item {
-                            val imeBottomPadding = WindowInsets.ime.asPaddingValues().calculateBottomPadding()
-                            Spacer(Modifier.height(maxOf(bottomInnerPadding, imeBottomPadding)))
-                        }
+            ) {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    item {
+                        Spacer(Modifier.height(6.dp))
+                    }
+                    items(state.moduleList) { module ->
+                        KpmModuleItem(
+                            module = module,
+                            state = state,
+                            actions = actions,
+                            onUninstall = { actions.onRequestUninstall(module.id) }
+                        )
+                    }
+                    item {
+                        val imeBottomPadding = WindowInsets.ime.asPaddingValues().calculateBottomPadding()
+                        Spacer(Modifier.height(maxOf(bottomInnerPadding, imeBottomPadding)))
                     }
                 }
-            )
+            }
         },
         contentWindowInsets = WindowInsets.systemBars.add(WindowInsets.displayCutout).only(WindowInsetsSides.Horizontal)
     ) { innerPadding ->
         val layoutDirection = LocalLayoutDirection.current
 
         if (showEmptyState) {
-            EmptyStateViewMiuix(
+            EmptyStateView(
                 innerPadding = innerPadding,
                 bottomInnerPadding = bottomInnerPadding,
                 layoutDirection = layoutDirection
             )
         } else {
             state.searchStatus.SearchBox(
-                onSearchStatusChange = { /* handled in KpmScreen */ },
+                onSearchStatusChange = actions.onSearchStatusChange,
                 searchBarTopPadding = dynamicTopPadding,
                 contentPadding = PaddingValues(
                     top = innerPadding.calculateTopPadding(),
@@ -295,8 +273,8 @@ fun KpmMiuix(
                 ),
                 hazeState = hazeState,
                 hazeStyle = hazeStyle
-            ) { boxHeightState ->
-                KpmListMiuix(
+            ) { boxHeight ->
+                KpmList(
                     state = state,
                     actions = actions,
                     scrollBehavior = scrollBehavior,
@@ -304,9 +282,8 @@ fun KpmMiuix(
                     hazeState = hazeState,
                     innerPadding = innerPadding,
                     bottomInnerPadding = bottomInnerPadding,
-                    boxHeight = boxHeightState.value,
-                    layoutDirection = layoutDirection,
-                    context = context
+                    boxHeight = boxHeight,
+                    layoutDirection = layoutDirection
                 )
             }
         }
@@ -314,75 +291,7 @@ fun KpmMiuix(
 }
 
 @Composable
-private fun KpmInstallModeDialogMiuix(
-    moduleName: String?,
-    kpmInstallMode: String,
-    kpmInstallModeLoad: String,
-    kpmInstallModeEmbed: String,
-    cancel: String,
-    onClearInstallState: () -> Unit,
-    onInstall: (Boolean) -> Unit
-) {
-    val showDialogState = remember { mutableStateOf(true) }
-
-    SuperDialog(
-        show = showDialogState,
-        title = kpmInstallMode,
-        onDismissRequest = onClearInstallState,
-        content = {
-            Column {
-                moduleName?.let {
-                    Text(
-                        text = stringResource(R.string.kpm_install_mode_description, it),
-                        color = colorScheme.onBackground
-                    )
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Button(
-                        onClick = { onInstall(false) },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Download,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp).padding(end = 4.dp)
-                        )
-                        Text(kpmInstallModeLoad)
-                    }
-
-                    Button(
-                        onClick = { onInstall(true) },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Inventory,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp).padding(end = 4.dp)
-                        )
-                        Text(kpmInstallModeEmbed)
-                    }
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    TextButton(
-                        text = cancel,
-                        onClick = onClearInstallState,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-            }
-        }
-    )
-}
-
-@Composable
-private fun KpmListMiuix(
+private fun KpmList(
     state: KpmUiState,
     actions: KpmActions,
     scrollBehavior: ScrollBehavior,
@@ -390,10 +299,10 @@ private fun KpmListMiuix(
     hazeState: HazeState,
     innerPadding: PaddingValues,
     bottomInnerPadding: Dp,
-    boxHeight: Dp,
-    layoutDirection: LayoutDirection,
-    context: Context
+    boxHeight: MutableState<Dp>,
+    layoutDirection: LayoutDirection
 ) {
+    val context = LocalContext.current
     val enableBlur = LocalEnableBlur.current
     val sharedPreferences = context.getSharedPreferences("app_preferences", Context.MODE_PRIVATE)
     var isNoticeClosed by remember { mutableStateOf(sharedPreferences.getBoolean("is_notice_closed", false)) }
@@ -403,8 +312,7 @@ private fun KpmListMiuix(
     val refreshRefresh = stringResource(R.string.refresh_refresh)
     val refreshComplete = stringResource(R.string.refresh_complete)
 
-    var isRefreshing by remember { mutableStateOf(false) }
-    val pullToRefreshState = rememberPullToRefreshState()
+    var isRefreshing by rememberSaveable { mutableStateOf(false) }
     val refreshTexts = remember {
         listOf(
             refreshPulling,
@@ -424,11 +332,10 @@ private fun KpmListMiuix(
 
     PullToRefresh(
         isRefreshing = isRefreshing,
-        pullToRefreshState = pullToRefreshState,
         onRefresh = { if (!isRefreshing) isRefreshing = true },
         refreshTexts = refreshTexts,
         contentPadding = PaddingValues(
-            top = innerPadding.calculateTopPadding() + boxHeight + 6.dp,
+            top = innerPadding.calculateTopPadding() + boxHeight.value + 6.dp,
             start = innerPadding.calculateStartPadding(layoutDirection),
             end = innerPadding.calculateEndPadding(layoutDirection),
         ),
@@ -442,7 +349,7 @@ private fun KpmListMiuix(
                 .nestedScroll(nestedScrollConnection)
                 .let { if (enableBlur) it.hazeSource(state = hazeState) else it },
             contentPadding = PaddingValues(
-                top = innerPadding.calculateTopPadding() + boxHeight + 6.dp,
+                top = innerPadding.calculateTopPadding() + boxHeight.value + 6.dp,
                 start = innerPadding.calculateStartPadding(layoutDirection),
                 end = innerPadding.calculateEndPadding(layoutDirection),
             ),
@@ -496,14 +403,11 @@ private fun KpmListMiuix(
             }
 
             items(state.moduleList) { module ->
-                KpmModuleItemMiuix(
+                KpmModuleItem(
                     module = module,
-                    onUninstall = {
-                        actions.onUninstall(module.id)
-                    },
-                    onControl = {
-                        actions.onControl(module.id)
-                    }
+                    state = state,
+                    actions = actions,
+                    onUninstall = { actions.onRequestUninstall(module.id) }
                 )
             }
             item {
@@ -514,11 +418,61 @@ private fun KpmListMiuix(
 }
 
 @Composable
-private fun KpmModuleItemMiuix(
-    module: com.sukisu.ultra.ui.viewmodel.KpmViewModel.ModuleInfo,
-    onUninstall: () -> Unit,
-    onControl: () -> Unit
+private fun KpmModuleItem(
+    module: KpmViewModel.ModuleInfo,
+    state: KpmUiState,
+    actions: KpmActions,
+    onUninstall: () -> Unit
 ) {
+    val showInputDialog = state.inputDialogState.visible && state.inputDialogState.moduleId == module.id
+
+    if (showInputDialog) {
+        SuperDialog(
+            show = true,
+            title = stringResource(R.string.kpm_control),
+            onDismissRequest = {
+                actions.onHideInputDialog()
+            },
+            content = {
+                Column {
+                    TextField(
+                        value = state.inputDialogState.args,
+                        onValueChange = { actions.onInputArgsChange(it) },
+                        label = stringResource(R.string.kpm_args),
+                        modifier = Modifier.fillMaxWidth(),
+                        useLabelAsPlaceholder = state.inputDialogState.args.isEmpty()
+                    )
+                    if (state.inputDialogState.args.isEmpty() && module.args.isNotEmpty()) {
+                        Text(
+                            text = module.args,
+                            color = colorScheme.onSurfaceVariantSummary,
+                            fontSize = MiuixTheme.textStyles.body2.fontSize,
+                            modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        TextButton(
+                            text = stringResource(R.string.cancel),
+                            onClick = { actions.onHideInputDialog() },
+                            modifier = Modifier.weight(1f)
+                        )
+                        Spacer(modifier = Modifier.width(20.dp))
+                        TextButton(
+                            text = stringResource(R.string.confirm),
+                            onClick = { actions.onExecuteControl() },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.textButtonColorsPrimary()
+                        )
+                    }
+                }
+            }
+        )
+    }
+
     val isDark = isSystemInDarkTheme()
     val onSurface = colorScheme.onSurface
     val secondaryContainer = colorScheme.secondaryContainer.copy(alpha = 0.8f)
@@ -610,7 +564,7 @@ private fun KpmModuleItemMiuix(
                     backgroundColor = secondaryContainer,
                     minHeight = 35.dp,
                     minWidth = 35.dp,
-                    onClick = onControl,
+                    onClick = { actions.onShowInputDialog(module.id) },
                 ) {
                     Icon(
                         modifier = Modifier.size(20.dp),
@@ -653,7 +607,7 @@ private fun KpmModuleItemMiuix(
 }
 
 @Composable
-private fun EmptyStateViewMiuix(
+private fun EmptyStateView(
     innerPadding: PaddingValues,
     bottomInnerPadding: Dp,
     layoutDirection: LayoutDirection
@@ -674,7 +628,7 @@ private fun EmptyStateViewMiuix(
             verticalArrangement = Arrangement.Center
         ) {
             Icon(
-                imageVector = Icons.Filled.Info,
+                imageVector = Icons.Filled.Code,
                 contentDescription = null,
                 tint = colorScheme.primary.copy(alpha = 0.6f),
                 modifier = Modifier
