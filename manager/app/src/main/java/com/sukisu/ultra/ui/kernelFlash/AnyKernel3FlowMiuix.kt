@@ -152,7 +152,7 @@ fun KpmPatchSelectionDialogMiuix(
     }
 
     SuperDialog(
-        show = showDialog,
+        show = showDialog.value,
         insideMargin = DpSize(0.dp, 0.dp),
         onDismissRequest = {
             showDialog.value = false

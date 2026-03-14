@@ -639,7 +639,7 @@ fun SlotInfoDialog(
 
     if (showDialogState.value) {
         SuperDialog(
-            show = showDialogState,
+            show = showDialogState.value,
             title = stringResource(R.string.susfs_slot_info_title),
             onDismissRequest = onDismiss,
             content = {

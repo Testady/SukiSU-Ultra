@@ -326,7 +326,7 @@ private fun KpmInstallModeDialogMiuix(
     val showDialogState = remember { mutableStateOf(true) }
 
     SuperDialog(
-        show = showDialogState,
+        show = showDialogState.value,
         title = kpmInstallMode,
         onDismissRequest = onClearInstallState,
         content = {

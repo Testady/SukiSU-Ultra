@@ -240,7 +240,7 @@ private fun AddUmountPathDialogMiuix(
     val showDialog = remember { mutableStateOf(true) }
 
     SuperDialog(
-        show = showDialog,
+        show = showDialog.value,
         title = stringResource(R.string.add_umount_path),
         onDismissRequest = {
             showDialog.value = false

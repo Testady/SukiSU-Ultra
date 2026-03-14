@@ -87,7 +87,7 @@ fun UniversalDialog(
 
     if (showDialogState.value) {
         SuperDialog(
-            show = showDialogState,
+            show = showDialogState.value,
             title = stringResource(titleRes),
             onDismissRequest = {
                 onDismiss()

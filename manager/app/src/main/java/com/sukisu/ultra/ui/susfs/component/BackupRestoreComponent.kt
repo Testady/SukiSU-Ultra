@@ -217,7 +217,7 @@ private fun BackupDialog(
 
     if (showDialogState.value) {
         SuperDialog(
-            show = showDialogState,
+            show = showDialogState.value,
             title = stringResource(R.string.susfs_backup_title),
             onDismissRequest = onDismiss,
             content = {
@@ -274,7 +274,7 @@ private fun RestoreDialog(
 
     if (showDialogState.value) {
         SuperDialog(
-            show = showDialogState,
+            show = showDialogState.value,
             title = stringResource(R.string.susfs_restore_title),
             onDismissRequest = onDismiss,
             content = {
@@ -332,7 +332,7 @@ private fun RestoreConfirmDialog(
 
     if (showDialogState.value && backupInfo != null) {
         SuperDialog(
-            show = showDialogState,
+            show = showDialogState.value,
             title = stringResource(R.string.susfs_restore_confirm_title),
             onDismissRequest = onDismiss,
             content = {
