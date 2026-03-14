@@ -1,14 +1,16 @@
 package com.sukisu.ultra.ui.component.uninstalldialog
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableState
 import com.sukisu.ultra.ui.LocalUiMode
 import com.sukisu.ultra.ui.UiMode
 
 @Composable
-fun UninstallDialog(showDialog: MutableState<Boolean>) {
+fun UninstallDialog(
+    show: Boolean,
+    onDismissRequest: () -> Unit
+) {
     when (LocalUiMode.current) {
-        UiMode.Miuix -> UninstallDialogMiuix(showDialog)
-        UiMode.Material -> UninstallDialogMaterial(showDialog)
+        UiMode.Miuix -> UninstallDialogMiuix(show, onDismissRequest)
+        UiMode.Material -> UninstallDialogMaterial(show, onDismissRequest)
     }
 }
