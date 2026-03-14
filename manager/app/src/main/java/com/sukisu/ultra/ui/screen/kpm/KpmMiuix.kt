@@ -1,12 +1,6 @@
 package com.sukisu.ultra.ui.screen.kpm
 
-import android.app.Activity
 import android.content.Context
-import android.content.Intent
-import android.util.Log
-import android.widget.Toast
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
@@ -44,24 +38,16 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.edit
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sukisu.ultra.R
-import com.sukisu.ultra.ui.component.dialog.ConfirmDialogHandle
-import com.sukisu.ultra.ui.component.dialog.ConfirmResult
-import com.sukisu.ultra.ui.component.dialog.rememberConfirmDialog
 import com.sukisu.ultra.ui.component.miuix.SearchBox
 import com.sukisu.ultra.ui.component.miuix.SearchPager
 import com.sukisu.ultra.ui.theme.LocalEnableBlur
-import com.sukisu.ultra.ui.util.*
 import com.sukisu.ultra.ui.viewmodel.KpmViewModel
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeSource
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.extra.SuperDialog
 import top.yukonga.miuix.kmp.icon.MiuixIcons
@@ -70,32 +56,22 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
-import java.io.File
-import java.net.URLEncoder
 
 @Composable
 fun KpmMiuix(
-    viewModel: KpmViewModel = viewModel(),
+    viewModel: KpmViewModel,
+    actions: KpmActions,
     bottomInnerPadding: Dp = 0.dp
 ) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val confirmDialog = rememberConfirmDialog()
-
-    val uiState by viewModel.uiState.collectAsState()
-    val searchStatus = uiState.searchStatus
+    val state by viewModel.uiState.collectAsState()
+    val listState = rememberLazyListState()
 
     val enableBlur = LocalEnableBlur.current
-    val listState = rememberLazyListState()
 
     val showEmptyState by remember {
         derivedStateOf {
-            uiState.moduleList.isEmpty() && searchStatus.searchText.isEmpty() && !uiState.isRefreshing
+            state.moduleList.isEmpty() && state.searchStatus.searchText.isEmpty() && !state.isRefreshing
         }
-    }
-
-    val moduleConfirmContentMap = uiState.moduleList.associate { module ->
-        module.id to stringResource(R.string.confirm_uninstall_content, module.id)
     }
 
     val scrollBehavior = MiuixScrollBehavior()
@@ -113,180 +89,10 @@ fun KpmMiuix(
         HazeStyle.Unspecified
     }
 
-    LaunchedEffect(searchStatus.searchText) {
-        viewModel.updateSearchText(searchStatus.searchText)
-    }
-
-    val kpmInstallSuccess = stringResource(R.string.kpm_install_success)
-    val kpmInstallFailed = stringResource(R.string.kpm_install_failed)
-    val cancel = stringResource(R.string.cancel)
-    val uninstall = stringResource(R.string.uninstall)
-    val failedToCheckModuleFile = stringResource(R.string.snackbar_failed_to_check_module_file)
-    val kpmUninstallSuccess = stringResource(R.string.kpm_uninstall_success)
-    val kpmUninstallFailed = stringResource(R.string.kpm_uninstall_failed)
     val kpmInstallMode = stringResource(R.string.kpm_install_mode)
     val kpmInstallModeLoad = stringResource(R.string.kpm_install_mode_load)
     val kpmInstallModeEmbed = stringResource(R.string.kpm_install_mode_embed)
-    val invalidFileTypeMessage = stringResource(R.string.invalid_file_type)
-    val confirmTitle = stringResource(R.string.confirm_uninstall_title_with_filename)
-
-    val showToast: suspend (String) -> Unit = { msg ->
-        scope.launch(Dispatchers.Main) {
-            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    var tempFileForInstall by remember { mutableStateOf<File?>(null) }
-    var showInstallModeDialog by remember { mutableStateOf(false) }
-    val showInstallDialogState = remember { mutableStateOf(false) }
-    var moduleName by remember { mutableStateOf<String?>(null) }
-
-    LaunchedEffect(tempFileForInstall) {
-        moduleName = tempFileForInstall?.let { extractModuleName(it) }
-    }
-
-    LaunchedEffect(showInstallModeDialog) {
-        showInstallDialogState.value = showInstallModeDialog
-    }
-
-    fun clearInstallState() {
-        runCatching {
-            showInstallDialogState.value = false
-            showInstallModeDialog = false
-            runCatching { tempFileForInstall?.delete() }
-            tempFileForInstall = null
-            moduleName = null
-        }.onFailure {
-            Log.e("KsuCli", "clearInstallState: ${it.message}", it)
-        }
-    }
-
-    if (showInstallModeDialog) {
-        SuperDialog(
-            show = showInstallDialogState.value,
-            title = kpmInstallMode,
-            onDismissRequest = {
-                clearInstallState()
-            },
-            content = {
-                Column {
-                    moduleName?.let {
-                        Text(
-                            text = stringResource(R.string.kpm_install_mode_description, it),
-                            color = colorScheme.onBackground
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Button(
-                            onClick = {
-                                scope.launch {
-                                    val tempFile = tempFileForInstall
-                                    tempFile?.let {
-                                        handleModuleInstall(
-                                            tempFile = it,
-                                            isEmbed = false,
-                                            viewModel = viewModel,
-                                            showToast = showToast,
-                                            kpmInstallSuccess = kpmInstallSuccess,
-                                            kpmInstallFailed = kpmInstallFailed
-                                        )
-                                    }
-                                    clearInstallState()
-                                }
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.Download,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp).padding(end = 4.dp)
-                            )
-                            Text(kpmInstallModeLoad)
-                        }
-
-                        Button(
-                            onClick = {
-                                scope.launch {
-                                    val tempFile = tempFileForInstall
-                                    tempFile?.let {
-                                        handleModuleInstall(
-                                            tempFile = it,
-                                            isEmbed = true,
-                                            viewModel = viewModel,
-                                            showToast = showToast,
-                                            kpmInstallSuccess = kpmInstallSuccess,
-                                            kpmInstallFailed = kpmInstallFailed
-                                        )
-                                    }
-                                    clearInstallState()
-                                }
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.Inventory,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp).padding(end = 4.dp)
-                            )
-                            Text(kpmInstallModeEmbed)
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        TextButton(
-                            text = cancel,
-                            onClick = {
-                                clearInstallState()
-                            },
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
-            }
-        )
-    }
-
-    val selectPatchLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode != Activity.RESULT_OK) return@rememberLauncherForActivityResult
-
-        val uri = result.data?.data ?: return@rememberLauncherForActivityResult
-
-        scope.launch {
-            val fileName = uri.lastPathSegment ?: "unknown.kpm"
-            val encodedFileName = URLEncoder.encode(fileName, "UTF-8")
-            val tempFile = File(context.cacheDir, encodedFileName)
-
-            context.contentResolver.openInputStream(uri)?.use { input ->
-                tempFile.outputStream().use { output ->
-                    input.copyTo(output)
-                }
-            }
-
-            if (!isValidKpmFile(tempFile, context.contentResolver.getType(uri))) {
-                showToast(invalidFileTypeMessage)
-                tempFile.delete()
-                return@launch
-            }
-
-            tempFileForInstall = tempFile
-            showInstallModeDialog = true
-        }
-    }
-
-    LaunchedEffect(Unit) {
-        while(true) {
-            viewModel.fetchModuleList()
-            delay(5000)
-        }
-    }
+    val cancel = stringResource(R.string.cancel)
 
     val scrollDistance = remember { mutableFloatStateOf(0f) }
     var fabVisible by remember { mutableStateOf(true) }
@@ -319,15 +125,74 @@ fun KpmMiuix(
         animationSpec = tween(durationMillis = 350)
     )
 
+    if (state.showInstallModeDialog) {
+        SuperDialog(
+            show = true,
+            title = kpmInstallMode,
+            onDismissRequest = {
+                actions.onDismissInstallDialog()
+            },
+            content = {
+                Column {
+                    state.tempModuleName?.let {
+                        Text(
+                            text = stringResource(R.string.kpm_install_mode_description, it),
+                            color = colorScheme.onBackground
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = { actions.onConfirmInstall("", false) },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Download,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp).padding(end = 4.dp)
+                            )
+                            Text(kpmInstallModeLoad)
+                        }
+
+                        Button(
+                            onClick = { actions.onConfirmInstall("", true) },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Inventory,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp).padding(end = 4.dp)
+                            )
+                            Text(kpmInstallModeEmbed)
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        TextButton(
+                            text = cancel,
+                            onClick = { actions.onDismissInstallDialog() },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+            }
+        )
+    }
+
     Scaffold(
         topBar = {
-            searchStatus.TopAppBarAnim(hazeState = hazeState, hazeStyle = hazeStyle) {
+            state.searchStatus.TopAppBarAnim(hazeState = hazeState, hazeStyle = hazeStyle) {
                 TopAppBar(
                     color = if (enableBlur) Color.Transparent else colorScheme.surface,
                     title = stringResource(R.string.kpm_title),
                     actions = {
                         IconButton(
-                            onClick = { viewModel.fetchModuleList() }
+                            onClick = actions.onRefresh
                         ) {
                             Icon(
                                 imageVector = MiuixIcons.Refresh,
@@ -348,13 +213,7 @@ fun KpmMiuix(
                         .padding(bottom = bottomInnerPadding + 20.dp, end = 20.dp)
                         .border(0.05.dp, colorScheme.outline.copy(alpha = 0.5f), CircleShape),
                     shadowElevation = 0.dp,
-                    onClick = {
-                        selectPatchLauncher.launch(
-                            Intent(Intent.ACTION_GET_CONTENT).apply {
-                                type = "application/octet-stream"
-                            }
-                        )
-                    },
+                    onClick = actions.onRequestInstall,
                     content = {
                         Icon(
                             painter = painterResource(id = R.drawable.package_import),
@@ -367,8 +226,8 @@ fun KpmMiuix(
             }
         },
         popupHost = {
-            searchStatus.SearchPager(
-                onSearchStatusChange = viewModel::updateSearchStatus,
+            state.searchStatus.SearchPager(
+                onSearchStatusChange = actions.onSearchStatusChange,
                 defaultResult = {},
                 searchBarTopPadding = dynamicTopPadding,
             ) {
@@ -378,28 +237,12 @@ fun KpmMiuix(
                     item {
                         Spacer(Modifier.height(6.dp))
                     }
-                    items(uiState.moduleList) { module ->
+                    items(state.moduleList) { module ->
                         KpmModuleItem(
                             module = module,
-                            viewModel = viewModel,
-                            onUninstall = {
-                                scope.launch {
-                                    val confirmContent = moduleConfirmContentMap[module.id] ?: ""
-                                    handleModuleUninstall(
-                                        module = module,
-                                        viewModel = viewModel,
-                                        showToast = showToast,
-                                        kpmUninstallSuccess = kpmUninstallSuccess,
-                                        kpmUninstallFailed = kpmUninstallFailed,
-                                        failedToCheckModuleFile = failedToCheckModuleFile,
-                                        uninstall = uninstall,
-                                        cancel = cancel,
-                                        confirmDialog = confirmDialog,
-                                        confirmTitle = confirmTitle,
-                                        confirmContent = confirmContent
-                                    )
-                                }
-                            }
+                            state = state,
+                            actions = actions,
+                            onUninstall = { actions.onRequestUninstall(module.id) }
                         )
                     }
                     item {
@@ -420,8 +263,8 @@ fun KpmMiuix(
                 layoutDirection = layoutDirection
             )
         } else {
-            searchStatus.SearchBox(
-                onSearchStatusChange = viewModel::updateSearchStatus,
+            state.searchStatus.SearchBox(
+                onSearchStatusChange = actions.onSearchStatusChange,
                 searchBarTopPadding = dynamicTopPadding,
                 contentPadding = PaddingValues(
                     top = innerPadding.calculateTopPadding(),
@@ -432,17 +275,8 @@ fun KpmMiuix(
                 hazeStyle = hazeStyle
             ) { boxHeight ->
                 KpmList(
-                    viewModel = viewModel,
-                    scope = scope,
-                    moduleConfirmContentMap = moduleConfirmContentMap,
-                    showToast = showToast,
-                    kpmUninstallSuccess = kpmUninstallSuccess,
-                    kpmUninstallFailed = kpmUninstallFailed,
-                    failedToCheckModuleFile = failedToCheckModuleFile,
-                    uninstall = uninstall,
-                    cancel = cancel,
-                    confirmDialog = confirmDialog,
-                    confirmTitle = confirmTitle,
+                    state = state,
+                    actions = actions,
                     scrollBehavior = scrollBehavior,
                     nestedScrollConnection = nestedScrollConnection,
                     hazeState = hazeState,
@@ -456,115 +290,10 @@ fun KpmMiuix(
     }
 }
 
-private suspend fun handleModuleInstall(
-    tempFile: File,
-    isEmbed: Boolean,
-    viewModel: KpmViewModel,
-    showToast: suspend (String) -> Unit,
-    kpmInstallSuccess: String,
-    kpmInstallFailed: String
-) {
-    val moduleId = extractModuleName(tempFile)
-    if (moduleId.isNullOrEmpty()) {
-        Log.e("KsuCli", "Failed to extract module ID from file: ${tempFile.name}")
-        showToast(kpmInstallFailed)
-        tempFile.delete()
-        return
-    }
-
-    val targetPath = "/data/adb/kpm/$moduleId.kpm"
-
-    try {
-        if (isEmbed) {
-            val shell = getRootShell()
-            shell.newJob().add("mkdir -p /data/adb/kpm").exec()
-            shell.newJob().add("cp ${tempFile.absolutePath} $targetPath").exec()
-        }
-
-        val loadResult = loadKpmModule(tempFile.absolutePath)
-        if (!loadResult) {
-            Log.e("KsuCli", "Failed to load KPM module")
-            showToast(kpmInstallFailed)
-        } else {
-            viewModel.fetchModuleList()
-            showToast(kpmInstallSuccess)
-        }
-    } catch (e: Exception) {
-        Log.e("KsuCli", "Failed to load KPM module: ${e.message}", e)
-        showToast(kpmInstallFailed)
-    }
-    tempFile.delete()
-}
-
-private suspend fun handleModuleUninstall(
-    module: KpmViewModel.ModuleInfo,
-    viewModel: KpmViewModel,
-    showToast: suspend (String) -> Unit,
-    kpmUninstallSuccess: String,
-    kpmUninstallFailed: String,
-    failedToCheckModuleFile: String,
-    uninstall: String,
-    cancel: String,
-    confirmTitle : String,
-    confirmContent : String,
-    confirmDialog: ConfirmDialogHandle
-) {
-    val moduleFileName = "${module.id}.kpm"
-    val moduleFilePath = "/data/adb/kpm/$moduleFileName"
-
-    val fileExists = try {
-        val shell = getRootShell()
-        val result = shell.newJob().add("ls /data/adb/kpm/$moduleFileName").exec()
-        result.isSuccess
-    } catch (e: Exception) {
-        Log.e("KsuCli", "Failed to check module file existence: ${e.message}", e)
-        showToast(failedToCheckModuleFile)
-        false
-    }
-
-    val confirmResult = confirmDialog.awaitConfirm(
-        title = confirmTitle,
-        content = confirmContent,
-        confirm = uninstall,
-        dismiss = cancel
-    )
-
-    if (confirmResult == ConfirmResult.Confirmed) {
-        try {
-            val unloadResult = unloadKpmModule(module.id)
-            if (!unloadResult) {
-                Log.e("KsuCli", "Failed to unload KPM module")
-                showToast(kpmUninstallFailed)
-                return
-            }
-
-            if (fileExists) {
-                val shell = getRootShell()
-                shell.newJob().add("rm $moduleFilePath").exec()
-            }
-
-            viewModel.fetchModuleList()
-            showToast(kpmUninstallSuccess)
-        } catch (e: Exception) {
-            Log.e("KsuCli", "Failed to unload KPM module: ${e.message}", e)
-            showToast(kpmUninstallFailed)
-        }
-    }
-}
-
 @Composable
 private fun KpmList(
-    viewModel: KpmViewModel,
-    scope: CoroutineScope,
-    moduleConfirmContentMap: Map<String, String>,
-    showToast: suspend (String) -> Unit,
-    kpmUninstallSuccess: String,
-    kpmUninstallFailed: String,
-    failedToCheckModuleFile: String,
-    uninstall: String,
-    cancel: String,
-    confirmDialog: ConfirmDialogHandle,
-    confirmTitle: String,
+    state: KpmUiState,
+    actions: KpmActions,
     scrollBehavior: ScrollBehavior,
     nestedScrollConnection: NestedScrollConnection,
     hazeState: HazeState,
@@ -578,15 +307,12 @@ private fun KpmList(
     val sharedPreferences = context.getSharedPreferences("app_preferences", Context.MODE_PRIVATE)
     var isNoticeClosed by remember { mutableStateOf(sharedPreferences.getBoolean("is_notice_closed", false)) }
 
-    val uiState by viewModel.uiState.collectAsState()
-
     val refreshPulling = stringResource(R.string.refresh_pulling)
     val refreshRelease = stringResource(R.string.refresh_release)
     val refreshRefresh = stringResource(R.string.refresh_refresh)
     val refreshComplete = stringResource(R.string.refresh_complete)
 
     var isRefreshing by rememberSaveable { mutableStateOf(false) }
-    val pullToRefreshState = rememberPullToRefreshState()
     val refreshTexts = remember {
         listOf(
             refreshPulling,
@@ -599,14 +325,13 @@ private fun KpmList(
     LaunchedEffect(isRefreshing) {
         if (isRefreshing) {
             delay(350)
-            viewModel.fetchModuleList()
+            actions.onRefresh()
             isRefreshing = false
         }
     }
 
     PullToRefresh(
         isRefreshing = isRefreshing,
-        pullToRefreshState = pullToRefreshState,
         onRefresh = { if (!isRefreshing) isRefreshing = true },
         refreshTexts = refreshTexts,
         contentPadding = PaddingValues(
@@ -677,28 +402,12 @@ private fun KpmList(
                 }
             }
 
-            items(uiState.moduleList) { module ->
+            items(state.moduleList) { module ->
                 KpmModuleItem(
                     module = module,
-                    viewModel = viewModel,
-                    onUninstall = {
-                        scope.launch {
-                            val confirmContent = moduleConfirmContentMap[module.id] ?: ""
-                            handleModuleUninstall(
-                                module = module,
-                                viewModel = viewModel,
-                                showToast = showToast,
-                                kpmUninstallSuccess = kpmUninstallSuccess,
-                                kpmUninstallFailed = kpmUninstallFailed,
-                                failedToCheckModuleFile = failedToCheckModuleFile,
-                                uninstall = uninstall,
-                                cancel = cancel,
-                                confirmDialog = confirmDialog,
-                                confirmTitle = confirmTitle,
-                                confirmContent = confirmContent
-                            )
-                        }
-                    }
+                    state = state,
+                    actions = actions,
+                    onUninstall = { actions.onRequestUninstall(module.id) }
                 )
             }
             item {
@@ -711,45 +420,29 @@ private fun KpmList(
 @Composable
 private fun KpmModuleItem(
     module: KpmViewModel.ModuleInfo,
-    viewModel: KpmViewModel,
+    state: KpmUiState,
+    actions: KpmActions,
     onUninstall: () -> Unit
 ) {
-    val scope = rememberCoroutineScope()
-    val context = LocalContext.current
-    val successMessage = stringResource(R.string.kpm_control_success)
-    val failureMessage = stringResource(R.string.kpm_control_failed)
-
-    val showToast: suspend (String) -> Unit = { msg ->
-        scope.launch(Dispatchers.Main) {
-            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    val showInputDialog = viewModel.showInputDialog && viewModel.selectedModuleId == module.id
-    val showDialogState = remember { mutableStateOf(false) }
-
-    LaunchedEffect(viewModel.showInputDialog, viewModel.selectedModuleId) {
-        showDialogState.value = viewModel.showInputDialog && viewModel.selectedModuleId == module.id
-    }
+    val showInputDialog = state.inputDialogState.visible && state.inputDialogState.moduleId == module.id
 
     if (showInputDialog) {
         SuperDialog(
-            show = showDialogState.value,
+            show = true,
             title = stringResource(R.string.kpm_control),
             onDismissRequest = {
-                showDialogState.value = false
-                viewModel.hideInputDialog()
+                actions.onHideInputDialog()
             },
             content = {
                 Column {
                     TextField(
-                        value = viewModel.inputArgs,
-                        onValueChange = { viewModel.updateInputArgs(it) },
+                        value = state.inputDialogState.args,
+                        onValueChange = { actions.onInputArgsChange(it) },
                         label = stringResource(R.string.kpm_args),
                         modifier = Modifier.fillMaxWidth(),
-                        useLabelAsPlaceholder = viewModel.inputArgs.isEmpty()
+                        useLabelAsPlaceholder = state.inputDialogState.args.isEmpty()
                     )
-                    if (viewModel.inputArgs.isEmpty() && module.args.isNotEmpty()) {
+                    if (state.inputDialogState.args.isEmpty() && module.args.isNotEmpty()) {
                         Text(
                             text = module.args,
                             color = colorScheme.onSurfaceVariantSummary,
@@ -764,26 +457,13 @@ private fun KpmModuleItem(
                     ) {
                         TextButton(
                             text = stringResource(R.string.cancel),
-                            onClick = {
-                                showDialogState.value = false
-                                viewModel.hideInputDialog()
-                            },
+                            onClick = { actions.onHideInputDialog() },
                             modifier = Modifier.weight(1f)
                         )
                         Spacer(modifier = Modifier.width(20.dp))
                         TextButton(
                             text = stringResource(R.string.confirm),
-                            onClick = {
-                                scope.launch {
-                                    val result = viewModel.executeControl()
-                                    val message = when (result) {
-                                        0 -> successMessage
-                                        else -> failureMessage
-                                    }
-                                    showToast(message)
-                                    showDialogState.value = false
-                                }
-                            },
+                            onClick = { actions.onExecuteControl() },
                             modifier = Modifier.weight(1f),
                             colors = ButtonDefaults.textButtonColorsPrimary()
                         )
@@ -884,9 +564,7 @@ private fun KpmModuleItem(
                     backgroundColor = secondaryContainer,
                     minHeight = 35.dp,
                     minWidth = 35.dp,
-                    onClick = {
-                        viewModel.showInputDialog(module.id)
-                    },
+                    onClick = { actions.onShowInputDialog(module.id) },
                 ) {
                     Icon(
                         modifier = Modifier.size(20.dp),
