@@ -49,8 +49,7 @@ fun LoadingDialogMiuix(showDialog: MutableState<Boolean>) {
                     Text(
                         modifier = Modifier.padding(start = 12.dp),
                         text = stringResource(R.string.processing),
-                        fontWeight = FontWeight.Medium,
-                        color = MiuixTheme.colorScheme.onBackground
+                        fontWeight = FontWeight.Medium
                     )
                 }
             }
@@ -80,10 +79,7 @@ fun ConfirmDialogMiuix(
                         when {
                             visuals.isMarkdown -> Markdown(content = content)
                             visuals.isHtml -> GithubMarkdown(content = content)
-                            else -> Text(
-                                text = content,
-                                color = MiuixTheme.colorScheme.onBackground
-                            )
+                            else -> Text(text = content)
                         }
                     }
                     Row(
