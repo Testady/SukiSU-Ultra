@@ -29,10 +29,8 @@ class ModuleRepoViewModel(
         private const val TAG = "ModuleRepoViewModel"
     }
 
-    typealias Author = com.sukisu.ultra.data.model.Author
-    typealias ReleaseAsset = com.sukisu.ultra.data.model.ReleaseAsset
     typealias RepoModule = com.sukisu.ultra.data.model.RepoModule
-
+    
     private val _uiState = MutableStateFlow(ModuleRepoUiState())
     val uiState: StateFlow<ModuleRepoUiState> = _uiState.asStateFlow()
 
