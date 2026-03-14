@@ -1,9 +1,6 @@
 package com.sukisu.ultra.ui.viewmodel
 
 import android.util.Log
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sukisu.ultra.data.repository.KpmRepository
@@ -32,8 +29,6 @@ class KpmViewModel(
     private var _showInputDialog = false
     private var _selectedModuleId: String? = null
     private var _inputArgs = ""
-    var currentModuleDetail by mutableStateOf("")
-        private set
 
     val showInputDialog: Boolean get() = _showInputDialog
     val selectedModuleId: String? get() = _selectedModuleId
@@ -64,20 +59,6 @@ class KpmViewModel(
         }
     }
 
-    fun loadModuleDetail(moduleId: String) {
-        viewModelScope.launch {
-            repo.getModuleInfo(moduleId)
-                .onSuccess { detail ->
-                    currentModuleDetail = detail
-                    Log.d(TAG, "Module detail loaded: $currentModuleDetail")
-                }
-                .onFailure { e ->
-                    Log.e(TAG, "Failed to load module detail", e)
-                    currentModuleDetail = "Error: ${e.message}"
-                }
-        }
-    }
-
     fun showInputDialog(moduleId: String) {
         _selectedModuleId = moduleId
         _showInputDialog = true
@@ -103,7 +84,6 @@ class KpmViewModel(
             .onFailure { e ->
                 Log.e(TAG, "Failed to control module", e)
                 hideInputDialog()
-                1
             }
             .getOrElse { -1 }
     }

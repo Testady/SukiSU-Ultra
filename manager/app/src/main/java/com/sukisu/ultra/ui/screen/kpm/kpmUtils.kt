@@ -3,7 +3,6 @@ package com.sukisu.ultra.ui.screen.kpm
 import android.util.Log
 import androidx.compose.foundation.lazy.LazyListState
 import com.sukisu.ultra.ui.util.getRootShell
-import com.sukisu.ultra.ui.util.loadKpmModule
 import java.io.File
 import java.io.FileInputStream
 
@@ -80,44 +79,4 @@ fun isScrolledToEnd(listState: LazyListState): Boolean {
     val lastItem = layoutInfo.visibleItemsInfo.lastOrNull() ?: return false
     return lastItem.index == layoutInfo.totalItemsCount - 1 &&
             lastItem.size < layoutInfo.viewportEndOffset
-}
-
-suspend fun handleModuleInstall(
-    tempFile: File,
-    isEmbed: Boolean,
-    showToast: suspend (String) -> Unit,
-    kpmInstallSuccess: String,
-    kpmInstallFailed: String,
-    onRefresh: () -> Unit
-) {
-    val moduleId = extractModuleName(tempFile)
-    if (moduleId.isNullOrEmpty()) {
-        Log.e("KsuCli", "Failed to extract module ID from file: ${tempFile.name}")
-        showToast(kpmInstallFailed)
-        tempFile.delete()
-        return
-    }
-
-    val targetPath = "/data/adb/kpm/$moduleId.kpm"
-
-    try {
-        if (isEmbed) {
-            val shell = getRootShell()
-            shell.newJob().add("mkdir -p /data/adb/kpm").exec()
-            shell.newJob().add("cp ${tempFile.absolutePath} $targetPath").exec()
-        }
-
-        val loadResult = loadKpmModule(tempFile.absolutePath)
-        if (!loadResult) {
-            Log.e("KsuCli", "Failed to load KPM module")
-            showToast(kpmInstallFailed)
-        } else {
-            onRefresh()
-            showToast(kpmInstallSuccess)
-        }
-    } catch (e: Exception) {
-        Log.e("KsuCli", "Failed to load KPM module: ${e.message}", e)
-        showToast(kpmInstallFailed)
-    }
-    tempFile.delete()
 }
