@@ -46,6 +46,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.pointer.pointerInput
@@ -66,8 +67,8 @@ import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
-import dev.chrisbanes.haze.hazeEffect
 import com.sukisu.ultra.ui.component.SearchStatus
+import com.sukisu.ultra.ui.util.defaultHazeEffect
 import com.sukisu.ultra.ui.theme.LocalEnableBlur
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.InputField
@@ -120,11 +121,7 @@ fun SearchStatus.SearchBox(
             }
             .then(
                 if (hazeState != null && hazeStyle != null) {
-                    Modifier.hazeEffect(hazeState) {
-                        style = hazeStyle
-                        blurRadius = 30.dp
-                        noiseFactor = 0f
-                    }
+                    Modifier.defaultHazeEffect(hazeState, hazeStyle)
                 } else {
                     Modifier.background(colorScheme.surface)
                 }
@@ -182,12 +179,13 @@ fun SearchStatus.SearchPager(
         animationSpec = tween(200, easing = FastOutSlowInEasing),
         label = "SearchPagerSurfaceAlpha"
     )
+    val surfaceColor = colorScheme.surface
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .zIndex(5f)
-            .background(colorScheme.surface.copy(alpha = surfaceAlpha))
+            .drawBehind { drawRect(surfaceColor.copy(alpha = surfaceAlpha)) }
             .semantics { onClick { false } }
             .then(
                 if (!searchStatus.isCollapsed()) Modifier.pointerInput(Unit) { } else Modifier
@@ -322,7 +320,7 @@ fun SearchBar(
             .padding(horizontal = 12.dp)
             .padding(top = searchBarTopPadding, bottom = 6.dp)
             .focusRequester(focusRequester),
-        onSearch = { it },
+        onSearch = { },
         expanded = searchStatus.shouldExpand(),
         onExpandedChange = {
             onSearchStatusChange(

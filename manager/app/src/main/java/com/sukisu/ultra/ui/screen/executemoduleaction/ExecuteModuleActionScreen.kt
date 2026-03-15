@@ -15,18 +15,13 @@ import com.sukisu.ultra.ui.UiMode
 import com.sukisu.ultra.ui.navigation3.LocalNavigator
 
 @Composable
-fun ExecuteModuleActionScreen(moduleId: String) {
+fun ExecuteModuleActionScreen(moduleId: String, fromShortcut: Boolean = false) {
     val navigator = LocalNavigator.current
     val context = LocalContext.current
     val activity = LocalActivity.current
     val scope = rememberCoroutineScope()
     var text by rememberSaveable { mutableStateOf("") }
     val logContent = rememberSaveable { StringBuilder() }
-
-    val fromShortcut = remember(activity) {
-        val intent = activity?.intent
-        intent?.getStringExtra("shortcut_type") == "module_action"
-    }
 
     val exitExecute = {
         if (fromShortcut && activity != null) {

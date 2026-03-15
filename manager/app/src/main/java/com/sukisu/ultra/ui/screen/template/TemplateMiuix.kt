@@ -56,15 +56,16 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
-import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import com.sukisu.ultra.R
+import com.sukisu.ultra.ui.util.defaultHazeEffect
 import com.sukisu.ultra.data.model.TemplateInfo
 import com.sukisu.ultra.ui.component.miuix.DropdownItem
 import com.sukisu.ultra.ui.theme.LocalEnableBlur
@@ -165,7 +166,9 @@ fun AppProfileTemplateScreenMiuix(
                 shadowElevation = 0.dp,
                 onClick = actions.onCreateTemplate,
                 modifier = Modifier
-                    .offset(y = offsetHeight)
+                    .offset {
+                        IntOffset(x = 0, y = offsetHeight.roundToPx())
+                    }
                     .padding(
                         bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() +
                                 WindowInsets.captionBar.asPaddingValues().calculateBottomPadding() + 20.dp,
@@ -383,11 +386,7 @@ private fun TopBar(
 ) {
     TopAppBar(
         modifier = if (enableBlur) {
-            Modifier.hazeEffect(hazeState) {
-                style = hazeStyle
-                blurRadius = 30.dp
-                noiseFactor = 0f
-            }
+            Modifier.defaultHazeEffect(hazeState, hazeStyle)
         } else {
             Modifier
         },

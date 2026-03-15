@@ -8,12 +8,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
-import dev.chrisbanes.haze.hazeEffect
+import com.sukisu.ultra.ui.util.defaultHazeEffect
 import top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
 
 @Stable
@@ -56,11 +56,7 @@ data class SearchStatus(
                     .matchParentSize()
                     .then(
                         if (hazeState != null && hazeStyle != null) {
-                            Modifier.hazeEffect(hazeState) {
-                                style = hazeStyle
-                                blurRadius = 30.dp
-                                noiseFactor = 0f
-                            }
+                            Modifier.defaultHazeEffect(hazeState, hazeStyle)
                         } else {
                             Modifier.background(colorScheme.surface)
                         }
@@ -68,7 +64,7 @@ data class SearchStatus(
             )
             Box(
                 modifier = Modifier
-                    .alpha(topAppBarAlpha.value)
+                    .graphicsLayer { alpha = topAppBarAlpha.value }
             ) { content() }
         }
     }
