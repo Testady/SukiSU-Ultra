@@ -25,7 +25,6 @@ import androidx.compose.ui.unit.LayoutDirection
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
-import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import com.sukisu.ultra.R
 import com.sukisu.ultra.ui.navigation3.LocalNavigator
@@ -44,6 +43,8 @@ import com.sukisu.ultra.ui.screen.susfs.component.ConfirmDialog
 import com.sukisu.ultra.ui.screen.susfs.component.SlotInfoDialog
 import com.sukisu.ultra.ui.screen.susfs.util.SuSFSManager
 import com.sukisu.ultra.ui.screen.susfs.viewmodel.SuSFSViewModel
+import com.sukisu.ultra.ui.theme.LocalEnableBlur
+import com.sukisu.ultra.ui.util.defaultHazeEffect
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
@@ -58,11 +59,16 @@ fun SuSFSMiuix() {
     val navigator = LocalNavigator.current
     val context = LocalContext.current
     val scrollBehavior = MiuixScrollBehavior()
+    val enableBlur = LocalEnableBlur.current
     val hazeState = remember { HazeState() }
-    val hazeStyle = HazeStyle(
-        backgroundColor = colorScheme.surface,
-        tint = HazeTint(colorScheme.surface.copy(0.8f))
-    )
+    val hazeStyle = if (enableBlur) {
+        HazeStyle(
+            backgroundColor = colorScheme.surface,
+            tint = HazeTint(colorScheme.surface.copy(0.8f))
+        )
+    } else {
+        HazeStyle.Unspecified
+    }
 
     val viewModel: SuSFSViewModel = viewModel()
     val uiState by viewModel.uiState.collectAsState()
@@ -350,12 +356,12 @@ fun SuSFSMiuix() {
     Scaffold(
         topBar = {
             TopAppBar(
-                modifier = Modifier.hazeEffect(hazeState) {
-                    style = hazeStyle
-                    blurRadius = 30.dp
-                    noiseFactor = 0f
+                modifier = if (enableBlur) {
+                    Modifier.defaultHazeEffect(hazeState, hazeStyle)
+                } else {
+                    Modifier
                 },
-                color = Color.Transparent,
+                color = if (enableBlur) Color.Transparent else colorScheme.surface,
                 title = stringResource(R.string.susfs_config_title),
                 navigationIcon = {
                     IconButton(onClick = {

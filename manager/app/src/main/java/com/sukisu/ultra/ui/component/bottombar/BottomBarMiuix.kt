@@ -25,8 +25,8 @@ import androidx.compose.ui.unit.sp
 import com.kyant.backdrop.Backdrop
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
-import dev.chrisbanes.haze.hazeEffect
 import com.sukisu.ultra.Natives
+import com.sukisu.ultra.ui.util.defaultHazeEffect
 import com.sukisu.ultra.R
 import com.sukisu.ultra.ui.LocalMainPagerState
 import com.sukisu.ultra.ui.component.FloatingBottomBar
@@ -69,11 +69,7 @@ fun BottomBarMiuix(
             modifier = modifier
                 .then(
                     if (enableBlur) {
-                        Modifier.hazeEffect(hazeState) {
-                            style = hazeStyle
-                            blurRadius = 30.dp
-                            noiseFactor = 0f
-                        }
+                        Modifier.defaultHazeEffect(hazeState, hazeStyle)
                     } else Modifier
                 ),
             color = if (enableBlur) Color.Transparent else MiuixTheme.colorScheme.surface,
