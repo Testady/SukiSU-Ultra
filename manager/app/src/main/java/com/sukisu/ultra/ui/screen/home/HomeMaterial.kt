@@ -289,7 +289,8 @@ private fun StatusCard(
                             .padding(horizontal = 24.dp, vertical = 16.dp)
                     ) {
                         Text(
-                            text = stringResource(R.string.superuser), style = MaterialTheme.typography.bodyLarge,
+                            text = stringResource(R.string.superuser),
+                            style = MaterialTheme.typography.bodyLarge,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -309,7 +310,8 @@ private fun StatusCard(
                             .padding(horizontal = 24.dp, vertical = 16.dp)
                     ) {
                         Text(
-                            text = stringResource(R.string.module), style = MaterialTheme.typography.bodyLarge,
+                            text = stringResource(R.string.module),
+                            style = MaterialTheme.typography.bodyLarge,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )

@@ -191,7 +191,7 @@ class MainActivity : ComponentActivity() {
                                 entry<Route.ModuleRepoDetail> { key -> ModuleRepoDetailScreen(key.module) }
                                 entry<Route.Install> { InstallScreen() }
                                 entry<Route.Flash> { key -> FlashScreen(key.flashIt) }
-                                entry<Route.ExecuteModuleAction> { key -> ExecuteModuleActionScreen(key.moduleId) }
+                                entry<Route.ExecuteModuleAction> { key -> ExecuteModuleActionScreen(key.moduleId, key.fromShortcut) }
                                 entry<Route.Home> { MainScreen() }
                                 entry<Route.SuperUser> { MainScreen() }
                                 entry<Route.Module> { MainScreen() }
@@ -389,7 +389,9 @@ private fun ShortcutIntentHandler(
         when (type) {
             "module_action" -> {
                 val moduleId = intent.getStringExtra("module_id") ?: return@LaunchedEffect
-                navigator.push(Route.ExecuteModuleAction(moduleId))
+                navigator.push(Route.ExecuteModuleAction(moduleId, fromShortcut = true))
+                intent.removeExtra("shortcut_type")
+                intent.removeExtra("module_id")
             }
 
             "module_webui" -> {
