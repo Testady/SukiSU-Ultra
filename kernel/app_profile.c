@@ -152,7 +152,7 @@ void disable_seccomp(void)
 
 void escape_with_root_profile(void)
 {
-	struct cred *cred;
+	struct cred *cred = NULL;
 	struct root_profile profile;
 	struct user_struct *new_user;
 #ifdef CONFIG_KSU_SYSCALL_HOOK
