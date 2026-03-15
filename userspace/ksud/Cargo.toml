@@ -53,7 +53,7 @@ nom = "8"
 derive-new = "0.7"
 getopts = "0.2"
 ksuinit = { path = "../ksuinit" }
-adb_client = "3"
+adb_client = { git = "https://github.com/Kernel-SU/adb_client" }
 serde = { version = "1.0", features = ["derive"] }
 notify = "6.1"
 
