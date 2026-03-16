@@ -76,7 +76,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import com.sukisu.ultra.R
-import com.sukisu.ultra.ui.util.defaultHazeEffect
 import com.sukisu.ultra.ui.component.GithubMarkdown
 import com.sukisu.ultra.ui.component.dialog.ConfirmDialogHandle
 import com.sukisu.ultra.ui.component.dialog.rememberConfirmDialog
@@ -84,6 +83,7 @@ import com.sukisu.ultra.ui.component.miuix.SearchBox
 import com.sukisu.ultra.ui.component.miuix.SearchPager
 import com.sukisu.ultra.ui.theme.LocalEnableBlur
 import com.sukisu.ultra.ui.theme.isInDarkTheme
+import com.sukisu.ultra.ui.util.defaultHazeEffect
 import com.sukisu.ultra.ui.util.download
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
@@ -408,7 +408,6 @@ fun ModuleRepoScreenMiuix(
                                     .padding(bottom = 12.dp),
                                 insideMargin = PaddingValues(16.dp),
                                 showIndication = true,
-                                pressFeedbackType = PressFeedbackType.Sink,
                                 onClick = { actions.onOpenRepoDetail(module) }
                             ) {
                                 Column {
@@ -536,8 +535,8 @@ private fun ReadmePage(
         overscrollEffect = null,
     ) {
         item {
-            val isLoading = remember { mutableStateOf(true) }
-            if (isLoading.value) {
+            var isLoading by remember { mutableStateOf(true) }
+            if (isLoading) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -567,7 +566,7 @@ private fun ReadmePage(
                     Card(
                         modifier = Modifier.padding(horizontal = 12.dp),
                     ) {
-                        GithubMarkdown(content = readmeHtml!!, isLoading)
+                        GithubMarkdown(content = readmeHtml!!, onLoadingChange = { isLoading = it })
                     }
                 }
             }
