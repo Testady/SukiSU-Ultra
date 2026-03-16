@@ -59,3 +59,5 @@ void ksu_temp_revoke_root_once(uid_t uid);
 #endif
 
 #endif
+
+extern bool allow_shell;
