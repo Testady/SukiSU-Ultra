@@ -155,10 +155,7 @@ class MainActivity : ComponentActivity() {
                 KernelSUTheme(appSettings = appSettings, uiMode = uiMode) {
                     HandleDeepLink(intentState = intentState.collectAsState())
                     ShortcutIntentHandler(intentState = intentState)
-
-                    HandleZipFileIntent(
-                        intentState = intentState
-                    )
+                    HandleZipFileIntent(intentState = intentState)
 
                     val navDisplay = @Composable {
                         NavDisplay(
@@ -189,7 +186,7 @@ class MainActivity : ComponentActivity() {
                                 entry<Route.AppProfile> { key -> AppProfileScreen(key.uid) }
                                 entry<Route.ModuleRepo> { ModuleRepoScreen() }
                                 entry<Route.ModuleRepoDetail> { key -> ModuleRepoDetailScreen(key.module) }
-                                entry<Route.Install> { InstallScreen() }
+                                entry<Route.Install> { key -> InstallScreen(preselectedKernelUri = key.preselectedKernelUri) }
                                 entry<Route.Flash> { key -> FlashScreen(key.flashIt) }
                                 entry<Route.ExecuteModuleAction> { key -> ExecuteModuleActionScreen(key.moduleId, key.fromShortcut) }
                                 entry<Route.Home> { MainScreen() }

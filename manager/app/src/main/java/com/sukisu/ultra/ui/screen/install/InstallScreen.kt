@@ -35,10 +35,13 @@ import com.sukisu.ultra.ui.util.getCurrentKmi
 import com.sukisu.ultra.ui.util.getDefaultPartition
 import com.sukisu.ultra.ui.util.getSlotSuffix
 import com.sukisu.ultra.ui.util.isAbDevice
+import android.net.Uri
 import com.sukisu.ultra.ui.util.rootAvailable
 
 @Composable
-fun InstallScreen() {
+fun InstallScreen(
+    preselectedKernelUri: Uri? = null
+) {
     val navigator = LocalNavigator.current
     val context = LocalContext.current
 
@@ -77,7 +80,7 @@ fun InstallScreen() {
     // AnyKernel3 状态
     val anyKernel3State = rememberAnyKernel3State(
         installMethodState = installMethodState,
-        preselectedKernelUri = null,
+        preselectedKernelUri = preselectedKernelUri?.toString(),
         horizonKernelSummary = horizonKernelSummary,
         isAbDevice = isAbDevice
     )
