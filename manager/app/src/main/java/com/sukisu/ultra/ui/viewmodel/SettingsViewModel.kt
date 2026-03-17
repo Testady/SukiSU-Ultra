@@ -1,5 +1,6 @@
 package com.sukisu.ultra.ui.viewmodel
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
@@ -127,9 +128,10 @@ class SettingsViewModel(
         repo.checkModuleUpdate = enabled
         _uiState.update { it.copy(checkModuleUpdate = enabled) }
     }
-    fun setAlternativeIcon(enabled: Boolean) {
+    fun setAlternativeIcon(context: Context, enabled: Boolean) {
         repo.alternativeIcon = enabled
         _uiState.update { it.copy(alternativeIcon = enabled) }
+        com.sukisu.ultra.ui.util.toggleLauncherIcon(context, enabled)
     }
 
     fun setThemeMode(mode: Int) {

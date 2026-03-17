@@ -157,10 +157,7 @@ fun SettingPagerMaterial(
                             title = stringResource(id = R.string.icon_switch_title),
                             summary = stringResource(id = R.string.icon_switch_summary),
                             checked = uiState.alternativeIcon,
-                            onCheckedChange = {
-                                actions.onSetAlternativeIcon(it)
-                                actions.onToggleLauncherIcon(it)
-                            }
+                            onCheckedChange = actions.onSetAlternativeIcon
                         )
                     }
                 }

@@ -55,7 +55,6 @@ data class SettingsScreenActions(
     val onSetAutoJailbreak: (Boolean) -> Unit,
     val onOpenAbout: () -> Unit,
     val onSetAlternativeIcon: (Boolean) -> Unit,
-    val onToggleLauncherIcon: (Boolean) -> Unit,
     val onOpenTools: () -> Unit,
     val onOpenKpm: () -> Unit,
     val onOpenSusfsConfig: () -> Unit,

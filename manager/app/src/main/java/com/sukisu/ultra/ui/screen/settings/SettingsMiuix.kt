@@ -202,10 +202,7 @@ fun SettingPagerMiuix(
                             )
                         },
                         checked = uiState.alternativeIcon,
-                        onCheckedChange = {
-                            actions.onSetAlternativeIcon(it)
-                            actions.onToggleLauncherIcon(it)
-                        }
+                        onCheckedChange = actions.onSetAlternativeIcon
                     )
                 }
 

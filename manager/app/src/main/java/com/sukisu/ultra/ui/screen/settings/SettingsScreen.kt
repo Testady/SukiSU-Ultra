@@ -11,7 +11,6 @@ import com.sukisu.ultra.ui.UiMode
 import com.sukisu.ultra.ui.navigation3.Navigator
 import com.sukisu.ultra.ui.navigation3.Route
 import com.sukisu.ultra.ui.util.getSuSFSStatus
-import com.sukisu.ultra.ui.util.toggleLauncherIcon
 import com.sukisu.ultra.ui.util.rememberKpmAvailable
 import com.sukisu.ultra.ui.viewmodel.SettingsViewModel
 
@@ -40,8 +39,7 @@ fun SettingPager(
         onSetEnableWebDebugging = viewModel::setEnableWebDebugging,
         onSetAutoJailbreak = viewModel::setAutoJailbreak,
         onOpenAbout = { navigator.push(Route.About) },
-        onSetAlternativeIcon = viewModel::setAlternativeIcon,
-        onToggleLauncherIcon = { enabled -> toggleLauncherIcon(context, enabled) },
+        onSetAlternativeIcon = { enabled -> viewModel.setAlternativeIcon(context, enabled) },
         onOpenTools = { navigator.push(Route.Tool) },
         onOpenKpm = { navigator.push(Route.Kpm) },
         onOpenSusfsConfig = { navigator.push(Route.SuSFS) },
