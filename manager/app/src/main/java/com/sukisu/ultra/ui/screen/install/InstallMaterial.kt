@@ -1,5 +1,11 @@
 package com.sukisu.ultra.ui.screen.install
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -18,6 +24,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.SdStorage
 import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -36,12 +43,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.sukisu.ultra.R
 import com.sukisu.ultra.getKernelVersion
 import com.sukisu.ultra.ui.component.dialog.rememberConfirmDialog
+import com.sukisu.ultra.ui.component.material.SegmentedCheckboxItem
 import com.sukisu.ultra.ui.component.material.SegmentedColumn
 import com.sukisu.ultra.ui.component.material.SegmentedDropdownItem
 import com.sukisu.ultra.ui.component.material.SegmentedListItem
@@ -59,7 +68,7 @@ import com.sukisu.ultra.ui.util.isAbDevice
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun InstallScreenMaterial(
-    state: InstallUiState,
+    uiState: InstallUiState,
     actions: InstallScreenActions,
 ) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
@@ -72,24 +81,24 @@ internal fun InstallScreenMaterial(
     }
 
     // 槽位选择对话框
-    if (state.showSlotSelectionDialog && isAbDevice) {
+    if (uiState.showSlotSelectionDialog && isAbDevice) {
         SlotSelectionDialogMaterial(
             show = true,
-            onDismiss = { state.anyKernel3State?.onDismissSlotDialog() },
+            onDismiss = { uiState.anyKernel3State?.onDismissSlotDialog() },
             onSlotSelected = { slot ->
-                state.anyKernel3State?.onSlotSelected(slot)
+                uiState.anyKernel3State?.onSlotSelected(slot)
             }
         )
     }
 
     // KPM补丁选择对话框
-    if (state.showKpmPatchDialog) {
+    if (uiState.showKpmPatchDialog) {
         KpmPatchSelectionDialogMaterial(
             show = true,
-            currentOption = state.kpmPatchOption,
-            onDismiss = { state.anyKernel3State?.onDismissPatchDialog() },
+            currentOption = uiState.kpmPatchOption,
+            onDismiss = { uiState.anyKernel3State?.onDismissPatchDialog() },
             onOptionSelected = { option ->
-                state.anyKernel3State?.onOptionSelected(option)
+                uiState.anyKernel3State?.onOptionSelected(option)
             }
         )
     }
@@ -115,36 +124,50 @@ internal fun InstallScreenMaterial(
                 .verticalScroll(rememberScrollState())
         ) {
             SelectInstallMethod(
-                state = state,
+                state = uiState,
                 onSelected = actions.onSelectMethod,
                 onSelectBootImage = actions.onSelectBootImage,
             )
+
             SegmentedColumn(
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                 content = buildList {
-                    if (state.displayPartitions.isNotEmpty()) add {
+                    if (uiState.displayPartitions.isNotEmpty()) add {
                         SegmentedDropdownItem(
-                            enabled = state.canSelectPartition,
-                            items = state.displayPartitions,
-                            selectedIndex = state.partitionSelectionIndex,
-                            title = "${stringResource(R.string.install_select_partition)} (${state.slotSuffix})",
+                            enabled = uiState.canSelectPartition,
+                            items = uiState.displayPartitions,
+                            selectedIndex = uiState.partitionSelectionIndex,
+                            title = "${stringResource(R.string.install_select_partition)} (${uiState.slotSuffix})",
                             onItemSelected = actions.onSelectPartition,
                             icon = Icons.Filled.Edit
                         )
                     }
                     if (isGkiDevice) add {
                         SegmentedListItem(
-                            leadingContent = { Icon(Icons.AutoMirrored.Filled.DriveFileMove, null) },
+                            leadingContent = {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.DriveFileMove,
+                                    null
+                                )
+                            },
                             headlineContent = { Text(stringResource(R.string.install_upload_lkm_file)) },
                             supportingContent = {
-                                (state.lkmSelection as? LkmSelection.LkmUri)?.let {
-                                    Text(stringResource(R.string.selected_lkm, it.uri.lastPathSegment ?: "(file)"))
+                                (uiState.lkmSelection as? LkmSelection.LkmUri)?.let {
+                                    Text(
+                                        stringResource(
+                                            R.string.selected_lkm,
+                                            it.uri.lastPathSegment ?: "(file)"
+                                        )
+                                    )
                                 }
                             },
                             trailingContent = {
-                                if (state.lkmSelection is LkmSelection.LkmUri) {
+                                if (uiState.lkmSelection is LkmSelection.LkmUri) {
                                     IconButton(onClick = actions.onClearLkm) {
-                                        Icon(Icons.Filled.Close, contentDescription = stringResource(android.R.string.cancel))
+                                        Icon(
+                                            Icons.Filled.Close,
+                                            contentDescription = stringResource(android.R.string.cancel)
+                                        )
                                     }
                                 } else {
                                     Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null)
@@ -155,8 +178,59 @@ internal fun InstallScreenMaterial(
                     }
                 }
             )
+            SegmentedColumn(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                visibleLen = if (uiState.advancedOptionsShown) 0 else 1,
+                content = buildList {
+                    val rotationState by animateFloatAsState(
+                        targetValue = if (uiState.advancedOptionsShown) 180f else 0f,
+                        label = "RotationAnimation"
+                    )
+                    add {
+                        SegmentedListItem(
+                            headlineContent ={ Text(stringResource(R.string.advanced_options)) },
+                            trailingContent = {
+                                Icon(
+                                    imageVector = Icons.Filled.ExpandMore,
+                                    contentDescription = stringResource(R.string.expand),
+                                    modifier = Modifier.graphicsLayer { rotationZ = rotationState }
+                                )
+                            },
+                            onClick = actions.onAdvancedOptionsClicked
+                        )
+                    }
+                    add {
+                        AnimatedVisibility(
+                            uiState.advancedOptionsShown,
+                            enter = expandVertically() + fadeIn(),
+                            exit = shrinkVertically() + fadeOut()
+                        ) {
+                            SegmentedCheckboxItem(
+                                title = stringResource(id = R.string.allow_shell),
+                                summary = stringResource(id = R.string.allow_shell_summary),
+                                checked = uiState.allowShell,
+                                onCheckedChange = actions.onSelectAllowShell,
+                            )
+                        }
+                    }
+                    add {
+                        AnimatedVisibility(
+                            uiState.advancedOptionsShown,
+                            enter = expandVertically() + fadeIn(),
+                            exit = shrinkVertically() + fadeOut()
+                        ) {
+                            SegmentedCheckboxItem(
+                                title = stringResource(id = R.string.enable_adb),
+                                summary = stringResource(id = R.string.enable_adb_summary),
+                                checked = uiState.enableAdb,
+                                onCheckedChange = actions.onSelectEnableAdb,
+                            )
+                        }
+                    }
+                }
+            )
             // AnyKernel3 刷写
-            (state.installMethod as? InstallMethod.HorizonKernel)?.let { method ->
+            (uiState.installMethod as? InstallMethod.HorizonKernel)?.let { method ->
                 SegmentedColumn(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                     content = buildList {
@@ -192,7 +266,7 @@ internal fun InstallScreenMaterial(
                                 leadingContent = {
                                     Icon(
                                         Icons.Filled.Security,
-                                        tint = when (state.kpmPatchOption) {
+                                        tint = when (uiState.kpmPatchOption) {
                                             KpmPatchOption.PATCH_KPM -> MaterialTheme.colorScheme.primary
                                             KpmPatchOption.UNDO_PATCH_KPM -> MaterialTheme.colorScheme.secondary
                                             KpmPatchOption.FOLLOW_KERNEL -> MaterialTheme.colorScheme.onSurfaceVariant
@@ -202,7 +276,7 @@ internal fun InstallScreenMaterial(
                                 },
                                 headlineContent = {
                                     Text(
-                                        when (state.kpmPatchOption) {
+                                        when (uiState.kpmPatchOption) {
                                             KpmPatchOption.PATCH_KPM -> stringResource(R.string.kpm_patch_enabled)
                                             KpmPatchOption.UNDO_PATCH_KPM -> stringResource(R.string.kpm_undo_patch_enabled)
                                             KpmPatchOption.FOLLOW_KERNEL -> stringResource(R.string.kpm_follow_kernel_file)
@@ -217,12 +291,11 @@ internal fun InstallScreenMaterial(
                     }
                 )
             }
-
             Button(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 4.dp),
-                enabled = state.installMethod != null,
+                enabled = uiState.installMethod != null,
                 onClick = actions.onNext
             ) { Text(stringResource(R.string.install_next)) }
         }
