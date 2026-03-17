@@ -35,6 +35,7 @@ data class SettingsUiState(
     val isDefaultUmountModules: Boolean = false,
 
     val isLkmMode: Boolean = false,
+    val isLateLoadMode: Boolean = false,
 
     // Auto Jailbreak
     val autoJailbreak: Boolean = false

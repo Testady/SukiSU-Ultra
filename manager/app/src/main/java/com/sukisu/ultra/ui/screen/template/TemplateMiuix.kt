@@ -65,10 +65,10 @@ import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeSource
 import com.sukisu.ultra.R
-import com.sukisu.ultra.ui.util.defaultHazeEffect
 import com.sukisu.ultra.data.model.TemplateInfo
 import com.sukisu.ultra.ui.component.miuix.DropdownItem
 import com.sukisu.ultra.ui.theme.LocalEnableBlur
+import com.sukisu.ultra.ui.util.defaultHazeEffect
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.FloatingActionButton
 import top.yukonga.miuix.kmp.basic.HorizontalDivider
