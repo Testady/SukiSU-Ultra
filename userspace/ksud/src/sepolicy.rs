@@ -1,5 +1,3 @@
-
-use std::{path::Path, vec};
 use anyhow::{Context, Result, bail};
 use derive_new::new;
 use nom::{
@@ -9,6 +7,7 @@ use nom::{
     character::complete::{space0, space1},
     combinator::map,
 };
+use std::{path::Path, vec};
 
 type SeObject<'a> = Vec<&'a str>;
 

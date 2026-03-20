@@ -828,7 +828,7 @@ pub fn run() -> Result<()> {
                 }
                 Kpm::Version => crate::kpm::version(),
             }
-        },
+        }
         #[cfg(target_arch = "aarch64")]
         Commands::Susfs { command } => {
             match command {
