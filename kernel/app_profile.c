@@ -12,7 +12,6 @@
 #include <linux/sched/task.h>
 #endif
 #include <linux/sched.h>
-#include <linux/sched/user.h>
 #include <linux/seccomp.h>
 #include <linux/slab.h>
 #include <linux/thread_info.h>
@@ -152,16 +151,15 @@ void disable_seccomp(void)
 
 void escape_with_root_profile(void)
 {
-	struct cred *cred = NULL;
+	struct cred *cred;
 	struct root_profile profile;
-	struct user_struct *new_user;
 #ifdef CONFIG_KSU_SYSCALL_HOOK
 	struct task_struct *t;
 #endif
 
 	if (current_euid().val == 0) {
 		pr_warn("Already root, don't escape!\n");
-		goto out_abort_creds;
+		return;
 	}
 
 	cred = prepare_creds();
@@ -185,34 +183,6 @@ void escape_with_root_profile(void)
 
 	BUILD_BUG_ON(sizeof(profile.capabilities.effective) !=
 				 sizeof(kernel_cap_t));
-
-	/*
-     * Mirror the kernel set*uid path: update cred->user first, then
-     * cred->ucounts, before commit_creds(). commit_creds() moves
-     * RLIMIT_NPROC accounting based on cred->user; if uid changes while
-     * user/ucounts stay stale, the old charge can remain pinned to the
-     * previous UID.
-     * See kernel/sys.c:set_user() and kernel/cred.c:set_cred_ucounts() /
-     * commit_creds():
-     * https://github.com/torvalds/linux/blob/v5.14/kernel/sys.c
-     * https://github.com/torvalds/linux/blob/v5.14/kernel/cred.c
-     */
-    new_user = alloc_uid(cred->uid);
-    if (!new_user) {
-        goto out_abort_creds;
-    }
-
-    free_uid(cred->user);
-    cred->user = new_user;
-
-    // v5.14+ added cred->ucounts, so we must refresh it after changing uid/user:
-    // https://github.com/torvalds/linux/commit/905ae01c4ae2ae3df05bb141801b1db4b7d83c61#diff-ff6060da281bd9ef3f24e17b77a9b0b5b2ed2d7208bb69b29107bee69732bd31
-    // on older kernels, per-UID process accounting lives in user_struct.
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 14, 0)
-    if (set_cred_ucounts(cred)) {
-        goto out_abort_creds;
-    }
-#endif
 
 	// setup capabilities
 	// we need CAP_DAC_READ_SEARCH becuase `/data/adb/ksud` is not accessible for non root process
@@ -243,10 +213,6 @@ void escape_with_root_profile(void)
 #endif
 
 	setup_mount_ns(profile.namespaces);
-    return;
-
-out_abort_creds:
-    abort_creds(cred);
 }
 
 void escape_to_root_for_init(void)
