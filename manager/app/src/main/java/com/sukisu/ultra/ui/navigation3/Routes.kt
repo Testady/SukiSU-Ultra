@@ -63,7 +63,7 @@ sealed interface Route : NavKey, Parcelable {
 
     @Parcelize
     @Serializable
-    data object Install : Route
+    data class Install(@Serializable(with = UriSerializer::class) val preselectedKernelUri: Uri? = null) : Route
 
     @Parcelize
     @Serializable

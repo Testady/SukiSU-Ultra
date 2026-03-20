@@ -56,8 +56,8 @@ import com.sukisu.ultra.ui.component.material.SegmentedDropdownItem
 import com.sukisu.ultra.ui.component.material.SegmentedListItem
 import com.sukisu.ultra.ui.component.material.SegmentedRadioItem
 import com.sukisu.ultra.ui.kernelFlash.KpmPatchOption
-import com.sukisu.ultra.ui.kernelFlash.KpmPatchSelectionDialogMaterial
-import com.sukisu.ultra.ui.kernelFlash.component.SlotSelectionDialogMaterial
+import com.sukisu.ultra.ui.kernelFlash.KpmPatchSelectionDialog
+import com.sukisu.ultra.ui.kernelFlash.component.SlotSelectionDialog
 import com.sukisu.ultra.ui.util.LkmSelection
 import com.sukisu.ultra.ui.util.isAbDevice
 
@@ -82,7 +82,7 @@ internal fun InstallScreenMaterial(
 
     // 槽位选择对话框
     if (uiState.showSlotSelectionDialog && isAbDevice) {
-        SlotSelectionDialogMaterial(
+        SlotSelectionDialog(
             show = true,
             onDismiss = { uiState.anyKernel3State?.onDismissSlotDialog() },
             onSlotSelected = { slot ->
@@ -93,7 +93,7 @@ internal fun InstallScreenMaterial(
 
     // KPM补丁选择对话框
     if (uiState.showKpmPatchDialog) {
-        KpmPatchSelectionDialogMaterial(
+        KpmPatchSelectionDialog(
             show = true,
             currentOption = uiState.kpmPatchOption,
             onDismiss = { uiState.anyKernel3State?.onDismissPatchDialog() },
@@ -188,7 +188,7 @@ internal fun InstallScreenMaterial(
                     )
                     add {
                         SegmentedListItem(
-                            headlineContent ={ Text(stringResource(R.string.advanced_options)) },
+                            headlineContent = { Text(stringResource(R.string.advanced_options)) },
                             trailingContent = {
                                 Icon(
                                     imageVector = Icons.Filled.ExpandMore,

@@ -39,6 +39,9 @@ data class HomeUiState(
     val showKernelPrBuildWarning: Boolean
         get() = isManager && !isManagerPrBuild && isKernelPrBuild
 
+    val showVersionMismatchWarning: Boolean
+        get() = ksuVersion != null && ksuVersion.toLong() != currentManagerVersionCode
+
     val hasUpdate: Boolean
         get() = latestVersionInfo.versionCode > currentManagerVersionCode
 }

@@ -1,5 +1,6 @@
 package com.sukisu.ultra.ui
 
+import androidx.compose.runtime.mutableIntStateOf
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.res.Configuration
@@ -102,13 +103,25 @@ import com.sukisu.ultra.ui.webui.WebUIActivity
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
+private const val KEY_INTENT_STATE = "intent_state"
+
 class MainActivity : ComponentActivity() {
 
-    private val intentState = MutableStateFlow(0)
+    private var intentStateValue by mutableIntStateOf(0)
+    private val intentStateFlow = MutableStateFlow(0)
+    private val intentState: MutableStateFlow<Int>
+        get() {
+            if (intentStateFlow.value != intentStateValue) {
+                intentStateFlow.value = intentStateValue
+            }
+            return intentStateFlow
+        }
 
     @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        intentStateValue = savedInstanceState?.getInt(KEY_INTENT_STATE, 0) ?: 0
+        intentStateFlow.value = intentStateValue
 
         val isManager = Natives.isManager
         if (isManager && !Natives.requireNewKernel()) install()
@@ -155,10 +168,7 @@ class MainActivity : ComponentActivity() {
                 KernelSUTheme(appSettings = appSettings, uiMode = uiMode) {
                     HandleDeepLink(intentState = intentState.collectAsState())
                     ShortcutIntentHandler(intentState = intentState)
-
-                    HandleZipFileIntent(
-                        intentState = intentState
-                    )
+                    HandleZipFileIntent(intentState = intentState)
 
                     val navDisplay = @Composable {
                         NavDisplay(
@@ -189,7 +199,7 @@ class MainActivity : ComponentActivity() {
                                 entry<Route.AppProfile> { key -> AppProfileScreen(key.uid) }
                                 entry<Route.ModuleRepo> { ModuleRepoScreen() }
                                 entry<Route.ModuleRepoDetail> { key -> ModuleRepoDetailScreen(key.module) }
-                                entry<Route.Install> { InstallScreen() }
+                                entry<Route.Install> { key -> InstallScreen(preselectedKernelUri = key.preselectedKernelUri) }
                                 entry<Route.Flash> { key -> FlashScreen(key.flashIt) }
                                 entry<Route.ExecuteModuleAction> { key -> ExecuteModuleActionScreen(key.moduleId, key.fromShortcut) }
                                 entry<Route.Home> { MainScreen() }
@@ -219,7 +229,13 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         // Increment intentState to trigger LaunchedEffect re-execution
-        intentState.value += 1
+        intentStateValue += 1
+        intentStateFlow.value = intentStateValue
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putInt(KEY_INTENT_STATE, intentStateValue)
     }
 }
 

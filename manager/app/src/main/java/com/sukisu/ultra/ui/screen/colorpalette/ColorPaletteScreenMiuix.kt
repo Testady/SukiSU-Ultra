@@ -66,10 +66,10 @@ import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeSource
 import com.sukisu.ultra.R
-import com.sukisu.ultra.ui.util.defaultHazeEffect
 import com.sukisu.ultra.ui.component.miuix.ScaleDialog
 import com.sukisu.ultra.ui.theme.LocalEnableBlur
 import com.sukisu.ultra.ui.theme.keyColorOptions
+import com.sukisu.ultra.ui.util.defaultHazeEffect
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton

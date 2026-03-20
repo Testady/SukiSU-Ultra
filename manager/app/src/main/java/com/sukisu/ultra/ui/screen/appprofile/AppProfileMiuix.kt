@@ -51,7 +51,6 @@ import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeSource
 import com.sukisu.ultra.Natives
-import com.sukisu.ultra.ui.util.defaultHazeEffect
 import com.sukisu.ultra.R
 import com.sukisu.ultra.ui.component.AppIconImage
 import com.sukisu.ultra.ui.component.miuix.DropdownItem
@@ -60,6 +59,7 @@ import com.sukisu.ultra.ui.component.profile.RootProfileConfig
 import com.sukisu.ultra.ui.component.profile.TemplateConfig
 import com.sukisu.ultra.ui.component.statustag.StatusTag
 import com.sukisu.ultra.ui.theme.LocalEnableBlur
+import com.sukisu.ultra.ui.util.defaultHazeEffect
 import com.sukisu.ultra.ui.util.listAppProfileTemplates
 import com.sukisu.ultra.ui.util.ownerNameForUid
 import com.sukisu.ultra.ui.util.setSepolicy

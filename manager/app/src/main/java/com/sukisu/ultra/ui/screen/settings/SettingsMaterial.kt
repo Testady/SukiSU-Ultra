@@ -157,10 +157,7 @@ fun SettingPagerMaterial(
                             title = stringResource(id = R.string.icon_switch_title),
                             summary = stringResource(id = R.string.icon_switch_summary),
                             checked = uiState.alternativeIcon,
-                            onCheckedChange = {
-                                actions.onSetAlternativeIcon(it)
-                                actions.onToggleLauncherIcon(it)
-                            }
+                            onCheckedChange = actions.onSetAlternativeIcon
                         )
                     }
                 }
@@ -313,6 +310,7 @@ fun SettingPagerMaterial(
                                 icon = Icons.Filled.ElectricalServices,
                                 title = stringResource(id = R.string.settings_auto_jailbreak),
                                 summary = stringResource(id = R.string.settings_auto_jailbreak_summary),
+                                enabled = uiState.isLateLoadMode,
                                 checked = uiState.autoJailbreak,
                                 onCheckedChange = actions.onSetAutoJailbreak
                             )
@@ -329,6 +327,7 @@ fun SettingPagerMaterial(
                             val uninstall = stringResource(id = R.string.settings_uninstall)
                             SegmentedListItem(
                                 onClick = { showUninstallDialog.value = true },
+                                enabled = !uiState.isLateLoadMode,
                                 headlineContent = { Text(uninstall) },
                                 leadingContent = { Icon(Icons.Filled.Delete, uninstall) }
                             )

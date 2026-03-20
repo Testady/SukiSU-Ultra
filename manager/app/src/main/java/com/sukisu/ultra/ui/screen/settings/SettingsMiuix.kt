@@ -202,10 +202,7 @@ fun SettingPagerMiuix(
                             )
                         },
                         checked = uiState.alternativeIcon,
-                        onCheckedChange = {
-                            actions.onSetAlternativeIcon(it)
-                            actions.onToggleLauncherIcon(it)
-                        }
+                        onCheckedChange = actions.onSetAlternativeIcon
                     )
                 }
 
@@ -401,6 +398,7 @@ fun SettingPagerMiuix(
                                     tint = colorScheme.onBackground
                                 )
                             },
+                            enabled = uiState.isLateLoadMode,
                             checked = uiState.autoJailbreak,
                             onCheckedChange = actions.onSetAutoJailbreak
                         )
@@ -416,6 +414,7 @@ fun SettingPagerMiuix(
                         val uninstall = stringResource(id = R.string.settings_uninstall)
                         SuperArrow(
                             title = uninstall,
+                            enabled = !uiState.isLateLoadMode,
                             startAction = {
                                 Icon(
                                     Icons.Rounded.Delete,

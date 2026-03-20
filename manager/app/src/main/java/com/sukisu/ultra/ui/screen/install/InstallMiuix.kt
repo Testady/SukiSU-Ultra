@@ -49,13 +49,13 @@ import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeSource
 import com.sukisu.ultra.R
 import com.sukisu.ultra.getKernelVersion
-import com.sukisu.ultra.ui.util.defaultHazeEffect
 import com.sukisu.ultra.ui.component.dialog.rememberConfirmDialog
 import com.sukisu.ultra.ui.kernelFlash.KpmPatchOption
-import com.sukisu.ultra.ui.kernelFlash.KpmPatchSelectionDialogMiuix
-import com.sukisu.ultra.ui.kernelFlash.component.SlotSelectionDialogMiuix
+import com.sukisu.ultra.ui.kernelFlash.KpmPatchSelectionDialog
+import com.sukisu.ultra.ui.kernelFlash.component.SlotSelectionDialog
 import com.sukisu.ultra.ui.theme.LocalEnableBlur
 import com.sukisu.ultra.ui.util.LkmSelection
+import com.sukisu.ultra.ui.util.defaultHazeEffect
 import com.sukisu.ultra.ui.util.isAbDevice
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
@@ -112,7 +112,7 @@ internal fun InstallScreenMiuix(
 
     // 槽位选择对话框
     if (uiState.showSlotSelectionDialog && isAbDevice) {
-        SlotSelectionDialogMiuix(
+        SlotSelectionDialog(
             show = true,
             onDismiss = { uiState.anyKernel3State?.onDismissSlotDialog() },
             onSlotSelected = { slot ->
@@ -123,7 +123,7 @@ internal fun InstallScreenMiuix(
 
     // KPM补丁选择对话框
     if (uiState.showKpmPatchDialog) {
-        KpmPatchSelectionDialogMiuix(
+        KpmPatchSelectionDialog(
             show = true,
             currentOption = uiState.kpmPatchOption,
             onDismiss = { uiState.anyKernel3State?.onDismissPatchDialog() },

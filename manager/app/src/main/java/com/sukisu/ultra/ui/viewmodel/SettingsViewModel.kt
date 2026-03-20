@@ -1,5 +1,6 @@
 package com.sukisu.ultra.ui.viewmodel
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
@@ -8,6 +9,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import com.sukisu.ultra.Natives
 import com.sukisu.ultra.data.repository.SettingsRepository
 import com.sukisu.ultra.data.repository.SettingsRepositoryImpl
 import com.sukisu.ultra.ui.screen.settings.SettingsUiState
@@ -54,6 +56,7 @@ class SettingsViewModel(
             val isDefaultUmountModules = repo.isDefaultUmountModules()
             val uiMode = repo.uiMode
             val autoJailbreak = repo.autoJailbreak
+            val isLateLoadMode = Natives.isLateLoadMode
 
             _uiState.update {
                 it.copy(
@@ -79,7 +82,8 @@ class SettingsViewModel(
                     isKernelUmountEnabled = isKernelUmountEnabled,
                     isDefaultUmountModules = isDefaultUmountModules,
                     isLkmMode = isLkmMode,
-                    autoJailbreak = autoJailbreak
+                    autoJailbreak = autoJailbreak,
+                    isLateLoadMode = isLateLoadMode,
                 )
             }
         }
@@ -124,9 +128,10 @@ class SettingsViewModel(
         repo.checkModuleUpdate = enabled
         _uiState.update { it.copy(checkModuleUpdate = enabled) }
     }
-    fun setAlternativeIcon(enabled: Boolean) {
+    fun setAlternativeIcon(context: Context, enabled: Boolean) {
         repo.alternativeIcon = enabled
         _uiState.update { it.copy(alternativeIcon = enabled) }
+        com.sukisu.ultra.ui.util.toggleLauncherIcon(context, enabled)
     }
 
     fun setThemeMode(mode: Int) {

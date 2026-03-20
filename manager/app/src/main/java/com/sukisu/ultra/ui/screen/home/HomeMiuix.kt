@@ -49,12 +49,12 @@ import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeSource
 import com.sukisu.ultra.KernelVersion
-import com.sukisu.ultra.ui.util.defaultHazeEffect
 import com.sukisu.ultra.R
 import com.sukisu.ultra.ui.component.dialog.rememberConfirmDialog
 import com.sukisu.ultra.ui.component.rebootlistpopup.RebootListPopupMiuix
 import com.sukisu.ultra.ui.theme.LocalEnableBlur
 import com.sukisu.ultra.ui.theme.isInDarkTheme
+import com.sukisu.ultra.ui.util.defaultHazeEffect
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
@@ -125,6 +125,14 @@ fun HomePagerMiuix(
                         WarningCard(stringResource(id = R.string.home_pr_build_warning))
                     } else if (state.showKernelPrBuildWarning) {
                         WarningCard(stringResource(id = R.string.home_pr_kernel_warning))
+                    }
+                    if (state.showVersionMismatchWarning) {
+                        WarningCard(
+                            stringResource(id = R.string.home_version_mismatch).format(
+                                state.currentManagerVersionCode,
+                                state.ksuVersion
+                            )
+                        )
                     }
                     if (state.showRequireKernelWarning) {
                         WarningCard(
@@ -249,8 +257,12 @@ private fun StatusCard(
                                 else -> Color(0xFFDFFAE4)
                             }
                         ),
-                        onClick = { actions.onInstallClick() },
-                        showIndication = true,
+                        onClick = {
+                            if (!state.isLateLoadMode) {
+                                actions.onInstallClick()
+                            }
+                        },
+                        showIndication = !state.isLateLoadMode,
                         pressFeedbackType = PressFeedbackType.Tilt
                     ) {
                         Box(modifier = Modifier.fillMaxSize()) {
@@ -358,8 +370,12 @@ private fun StatusCard(
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Card(
                         modifier = Modifier.weight(1f),
-                        onClick = { actions.onInstallClick() },
-                        showIndication = true,
+                        onClick = {
+                            if (!state.isLateLoadMode) {
+                                actions.onInstallClick()
+                            }
+                        },
+                        showIndication = !state.isLateLoadMode,
                         pressFeedbackType = PressFeedbackType.Sink
                     ) {
                         BasicComponent(
@@ -390,8 +406,12 @@ private fun StatusCard(
 
             else -> {
                 Card(
-                    onClick = { actions.onInstallClick() },
-                    showIndication = true,
+                    onClick = {
+                        if (!state.isLateLoadMode) {
+                            actions.onInstallClick()
+                        }
+                    },
+                    showIndication = !state.isLateLoadMode,
                     pressFeedbackType = PressFeedbackType.Sink
                 ) {
                     BasicComponent(
