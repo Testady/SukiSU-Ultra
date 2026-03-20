@@ -48,13 +48,6 @@ enum Commands {
         post_magica: bool,
     },
 
-    #[cfg(target_arch = "aarch64")]
-    /// Susfs
-    Susfs {
-        #[command(subcommand)]
-        command: Susfs,
-    },
-
     /// Install KernelSU userspace component to system
     Install {
         #[arg(long, default_value = None)]
@@ -98,12 +91,27 @@ enum Commands {
         command: BootInfo,
     },
 
-    /// KPM module manager
-    #[cfg(target_arch = "aarch64")]
-    Kpm {
+    /// For developers
+    Debug {
         #[command(subcommand)]
-        command: kpm_cmd::Kpm,
+        command: Debug,
     },
+
+    /// Kernel interface
+    Kernel {
+        #[command(subcommand)]
+        command: Kernel,
+    },
+
+    /// Resetprop - Magisk-compatible system property tool
+    Resetprop {
+        /// Arguments passed to resetprop
+        #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
+        args: Vec<String>,
+    },
+
+    /// Dump kernel sulog to file (/data/adb/ksu/log/sulog.log)
+    SulogDump,
 
     /// Manage kernel umount paths
     Umount {
@@ -111,18 +119,19 @@ enum Commands {
         command: Umount,
     },
 
-    /// For developers
-    Debug {
+    /// KPM module manager
+    #[cfg(target_arch = "aarch64")]
+    Kpm {
         #[command(subcommand)]
-        command: Debug,
+        command: kpm_cmd::Kpm,
     },
-    /// Kernel interface
-    Kernel {
+
+    #[cfg(target_arch = "aarch64")]
+    /// Susfs
+    Susfs {
         #[command(subcommand)]
-        command: Kernel,
+        command: Susfs,
     },
-    /// Dump kernel sulog to file (/data/adb/ksu/log/sulog.log)
-    SulogDump,
 }
 
 #[derive(clap::Subcommand, Debug)]
@@ -432,6 +441,25 @@ enum Kernel {
 }
 
 #[derive(clap::Subcommand, Debug)]
+enum UmountOp {
+    /// Add mount point to umount list
+    Add {
+        /// mount point path
+        mnt: String,
+        /// umount flags (default: 0, MNT_DETACH: 2)
+        #[arg(short, long, default_value = "0")]
+        flags: u32,
+    },
+    /// Delete mount point from umount list
+    Del {
+        /// mount point path
+        mnt: String,
+    },
+    /// Wipe all entries from umount list
+    Wipe,
+}
+
+#[derive(clap::Subcommand, Debug)]
 enum Umount {
     /// Add mount point to umount list
     Add {
@@ -454,25 +482,6 @@ enum Umount {
     Apply,
     /// Clear custom umount paths (wipe kernel list)
     ClearCustom,
-}
-
-#[derive(clap::Subcommand, Debug)]
-enum UmountOp {
-    /// Add mount point to umount list
-    Add {
-        /// mount point path
-        mnt: String,
-        /// umount flags (default: 0, MNT_DETACH: 2)
-        #[arg(short, long, default_value = "0")]
-        flags: u32,
-    },
-    /// Delete mount point from umount list
-    Del {
-        /// mount point path
-        mnt: String,
-    },
-    /// Wipe all entries from umount list
-    Wipe,
 }
 
 #[cfg(target_arch = "aarch64")]
@@ -523,6 +532,11 @@ pub fn run() -> Result<()> {
         return crate::su::root_shell();
     }
 
+    if arg0.ends_with("resetprop") {
+        let all_args: Vec<String> = std::env::args().collect();
+        return crate::resetprop::run_from_args(&all_args);
+    }
+
     let cli = Args::parse();
 
     log::info!("command: {:?}", cli.command);
@@ -531,17 +545,6 @@ pub fn run() -> Result<()> {
         Commands::PostFsData => init_event::on_post_data_fs(),
         Commands::BootCompleted => {
             init_event::on_boot_completed();
-            Ok(())
-        }
-        #[cfg(target_arch = "aarch64")]
-        Commands::Susfs { command } => {
-            match command {
-                Susfs::Version => println!("{}", susfs::get_susfs_version()),
-
-                Susfs::Status => println!("{}", susfs::get_susfs_status()),
-
-                Susfs::Features => println!("{}", susfs::get_susfs_features()),
-            }
             Ok(())
         }
         Commands::Module { command } => {
@@ -772,18 +775,12 @@ pub fn run() -> Result<()> {
             }
         },
         Commands::BootRestore(boot_restore) => crate::boot_patch::restore(boot_restore),
-        Commands::Umount { command } => match command {
-            Umount::Add { mnt, flags } => ksucalls::umount_list_add(&mnt, flags),
-            Umount::Remove { mnt } => umount::remove_umount_entry_from_config(&mnt),
-            Umount::List => {
-                let list = ksucalls::umount_list_list()?;
-                print!("{list}");
-                Ok(())
-            }
-            Umount::Save => umount::save_umount_config(),
-            Umount::Apply => umount::apply_umount_config(),
-            Umount::ClearCustom => umount::clear_umount_config(),
-        },
+        Commands::Resetprop { args } => {
+            let mut full_args = vec!["resetprop".to_string()];
+            full_args.extend(args);
+            crate::resetprop::run_from_args(&full_args)
+        }
+
         Commands::Kernel { command } => match command {
             Kernel::NukeExt4Sysfs { mnt } => ksucalls::nuke_ext4_sysfs(&mnt),
             Kernel::Umount { command } => match command {
@@ -801,6 +798,18 @@ pub fn run() -> Result<()> {
             println!("sulog saved to /data/adb/ksu/log/sulog.log");
             Ok(())
         }
+        Commands::Umount { command } => match command {
+            Umount::Add { mnt, flags } => ksucalls::umount_list_add(&mnt, flags),
+            Umount::Remove { mnt } => umount::remove_umount_entry_from_config(&mnt),
+            Umount::List => {
+                let list = ksucalls::umount_list_list()?;
+                print!("{list}");
+                Ok(())
+            }
+            Umount::Save => umount::save_umount_config(),
+            Umount::Apply => umount::apply_umount_config(),
+            Umount::ClearCustom => umount::clear_umount_config(),
+        },
         #[cfg(target_arch = "aarch64")]
         Commands::Kpm { command } => {
             use crate::cli::kpm_cmd::Kpm;
@@ -819,6 +828,17 @@ pub fn run() -> Result<()> {
                 }
                 Kpm::Version => crate::kpm::version(),
             }
+        },
+        #[cfg(target_arch = "aarch64")]
+        Commands::Susfs { command } => {
+            match command {
+                Susfs::Version => println!("{}", susfs::get_susfs_version()),
+
+                Susfs::Status => println!("{}", susfs::get_susfs_status()),
+
+                Susfs::Features => println!("{}", susfs::get_susfs_features()),
+            }
+            Ok(())
         }
     };
 
