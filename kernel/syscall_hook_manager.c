@@ -69,7 +69,8 @@ static void ksu_mark_running_process_locked()
     struct task_struct *p, *t;
     read_lock(&tasklist_lock);
     for_each_process_thread (p, t) {
-        if (!t->mm) { // only user processes
+        if (t->pid != 1 && !t->mm) {
+            // skip kernel threads, but always allow pid 1
             continue;
         }
         int uid = task_uid(t).val;
@@ -264,6 +265,11 @@ int ksu_handle_init_mark_tracker(const char __user **filename_user)
 
     memset(path, 0, sizeof(path));
     strncpy_from_user(path, fn, sizeof(path));
+
+    if (ret < 0) {
+        // unreadable path; keep mark to avoid wrongly unmarking zygote
+        return 0;
+    }
 
     if (unlikely(strcmp(path, KSUD_PATH) == 0)) {
         pr_info("hook_manager: escape to root for init executing ksud: %d\n",
