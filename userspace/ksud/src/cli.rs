@@ -48,6 +48,9 @@ enum Commands {
         post_magica: bool,
     },
 
+    /// Emulate system reboot
+    SoftReboot,
+
     /// Install KernelSU userspace component to system
     Install {
         #[arg(long, default_value = None)]
@@ -550,6 +553,9 @@ pub fn run() -> Result<()> {
             init_event::on_boot_completed();
             Ok(())
         }
+
+        Commands::SoftReboot => init_event::soft_reboot(),
+
         Commands::Module { command } => {
             utils::switch_mnt_ns(1)?;
             match command {
