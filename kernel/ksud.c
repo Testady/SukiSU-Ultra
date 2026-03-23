@@ -25,7 +25,7 @@
 #include "ksud.h"
 #include "selinux/selinux.h"
 #include "throne_tracker.h"
-#include "syscall_hook.h"
+#include "hook/syscall_hook.h"
 
 bool ksu_module_mounted __read_mostly = false;
 bool ksu_boot_completed __read_mostly = false;
@@ -484,7 +484,7 @@ static long ksu_sys_read(const struct pt_regs *regs)
 {
     unsigned int fd = PT_REGS_PARM1(regs);
     char __user **buf_ptr = (char __user **)&PT_REGS_PARM2(regs);
-    size_t count_ptr = (size_t *)&PT_REGS_PARM3(regs);
+    size_t *count_ptr = (size_t *)&PT_REGS_PARM3(regs);
 
     ksu_handle_sys_read(fd, buf_ptr, count_ptr);
     return orig_sys_read(regs);
@@ -494,7 +494,7 @@ static long (*orig_sys_fstat)(const struct pt_regs *regs);
 static long ksu_sys_fstat(const struct pt_regs *regs)
 {
     unsigned int fd = PT_REGS_PARM1(regs);
-    void *statbuf = PT_REGS_PARM2(regs);
+    void __user *statbuf = (void __user *)PT_REGS_PARM2(regs);
     bool is_rc = false;
     long ret;
 
@@ -550,14 +550,14 @@ static void do_stop_input_hook(struct work_struct *work)
 
 static void stop_init_rc_hook()
 {
-    ksu_replace_syscall_table(__NR_read, orig_sys_read, NULL);
-    ksu_replace_syscall_table(__NR_fstat, orig_sys_fstat, NULL);
+    ksu_syscall_table_unhook(__NR_read);
+    ksu_syscall_table_unhook(__NR_fstat);
     pr_info("unregister init_rc syscall hook\n");
 }
 
 static void stop_execve_hook()
 {
-    ksu_replace_syscall_table(__NR_execve, orig_sys_execve, NULL);
+    ksu_syscall_table_unhook(__NR_execve);
     pr_info("unhook sys_execve\n");
 }
 
@@ -577,9 +577,9 @@ void ksu_ksud_init()
 {
     int ret;
 
-    ksu_replace_syscall_table(__NR_execve, ksu_sys_execve, &orig_sys_execve);
-    ksu_replace_syscall_table(__NR_read, ksu_sys_read, &orig_sys_read);
-    ksu_replace_syscall_table(__NR_fstat, ksu_sys_fstat, &orig_sys_fstat);
+    ksu_syscall_table_hook(__NR_execve, ksu_sys_execve, &orig_sys_execve);
+    ksu_syscall_table_hook(__NR_read, ksu_sys_read, &orig_sys_read);
+    ksu_syscall_table_hook(__NR_fstat, ksu_sys_fstat, &orig_sys_fstat);
 
     ret = register_kprobe(&input_event_kp);
     pr_info("ksud: input_event_kp: %d\n", ret);

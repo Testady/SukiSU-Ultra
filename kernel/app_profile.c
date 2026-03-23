@@ -15,7 +15,7 @@
 #include "klog.h" // IWYU pragma: keep
 #include "selinux/selinux.h"
 #include "su_mount_ns.h"
-#include "syscall_hook_manager.h"
+#include "tp_marker.h"
 #include "sucompat.h"
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 7, 0)

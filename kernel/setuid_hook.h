@@ -9,6 +9,7 @@
 void ksu_setuid_hook_init(void);
 void ksu_setuid_hook_exit(void);
 
-int ksu_handle_setresuid(uid_t ruid, uid_t euid, uid_t suid);
+// Handler functions for hook_manager
+int ksu_handle_setresuid(uid_t old_uid, uid_t new_uid);
 
 #endif

@@ -18,14 +18,12 @@
 #include "manager.h"
 #include "seccomp_cache.h"
 #include "supercalls.h"
-#include "syscall_hook_manager.h"
+#include "tp_marker.h"
 #include "kernel_umount.h"
 
-int ksu_handle_setresuid(uid_t ruid, uid_t euid, uid_t suid)
+int ksu_handle_setresuid(uid_t old_uid, uid_t new_uid)
 {
-    uid_t new_uid = ruid;
-    uid_t old_uid = current_uid().val;
-
+    // we rely on the fact that zygote always call setresuid(3) with same uids
     pr_info("handle_setresuid from %d to %d\n", old_uid, new_uid);
 
     if (likely(ksu_is_manager_appid_valid()) &&
