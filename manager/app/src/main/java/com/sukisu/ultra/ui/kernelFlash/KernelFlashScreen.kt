@@ -6,7 +6,6 @@ import android.os.Environment
 import androidx.activity.compose.LocalActivity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -30,6 +29,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @Composable
 fun KernelFlashScreen(
@@ -66,7 +66,7 @@ fun KernelFlashScreen(
         }
     }
 
-    val flashState by horizonKernelState.state.collectAsState()
+    val flashState by horizonKernelState.state.collectAsStateWithLifecycle()
 
     val flashComplete = stringResource(R.string.horizon_flash_complete)
 

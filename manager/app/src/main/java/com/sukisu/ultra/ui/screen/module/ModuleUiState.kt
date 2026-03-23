@@ -1,6 +1,7 @@
 package com.sukisu.ultra.ui.screen.module
 
 import android.net.Uri
+import androidx.compose.runtime.Immutable
 import com.sukisu.ultra.data.model.Module
 import com.sukisu.ultra.data.model.ModuleUpdateInfo
 import com.sukisu.ultra.ui.component.SearchStatus
@@ -17,6 +18,7 @@ sealed interface ModuleConfirmRequest {
     ) : ModuleConfirmRequest
 }
 
+@Immutable
 data class ModuleConfirmDialogState(
     val request: ModuleConfirmRequest,
     val title: String,
@@ -37,6 +39,7 @@ sealed interface ModuleEffect {
     ) : ModuleEffect
 }
 
+@Immutable
 data class ModuleUiState(
     val isRefreshing: Boolean = false,
     val modules: List<Module> = emptyList(),
@@ -49,11 +52,14 @@ data class ModuleUiState(
     val checkModuleUpdate: Boolean = true,
     val isSafeMode: Boolean = false,
     val magiskInstalled: Boolean = false,
+    val confirmDialogState: ModuleConfirmDialogState? = null,
+    val effect: ModuleEffect? = null,
 ) {
     val installButtonVisible: Boolean
         get() = !(isSafeMode || magiskInstalled)
 }
 
+@Immutable
 data class ModuleActions(
     val onRefresh: () -> Unit,
     val onSearchStatusChange: (SearchStatus) -> Unit,

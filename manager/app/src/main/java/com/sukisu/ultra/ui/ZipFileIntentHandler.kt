@@ -8,13 +8,13 @@ import android.widget.Toast
 import androidx.activity.compose.LocalActivity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sukisu.ultra.Natives
 import com.sukisu.ultra.R
 import com.sukisu.ultra.ui.component.dialog.ConfirmResult
@@ -51,7 +51,7 @@ fun HandleZipFileIntent(
         module = stringResource(R.string.module),
     )
 
-    val intentStateValue by intentState.collectAsState()
+    val intentStateValue by intentState.collectAsStateWithLifecycle()
     val activity = LocalActivity.current ?: return
 
     LaunchedEffect(intentStateValue) {

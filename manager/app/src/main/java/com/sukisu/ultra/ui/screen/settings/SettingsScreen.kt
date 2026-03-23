@@ -1,10 +1,10 @@
 package com.sukisu.ultra.ui.screen.settings
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sukisu.ultra.ui.LocalUiMode
 import com.sukisu.ultra.ui.UiMode
@@ -21,7 +21,7 @@ fun SettingPager(
 ) {
     val context = LocalContext.current
     val viewModel = viewModel<SettingsViewModel>()
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val isKpmAvailable = rememberKpmAvailable()
     val isSusfsSupported = getSuSFSStatus().equals("true", ignoreCase = true)
 

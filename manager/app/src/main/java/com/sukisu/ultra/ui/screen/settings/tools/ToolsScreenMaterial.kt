@@ -32,7 +32,7 @@ import com.sukisu.ultra.R
 import com.sukisu.ultra.ui.component.KsuIsValid
 import com.sukisu.ultra.ui.component.material.SegmentedColumn
 import com.sukisu.ultra.ui.component.material.SegmentedListItem
-import com.sukisu.ultra.ui.util.getSELinuxStatus
+import com.sukisu.ultra.ui.util.getSELinuxStatusRaw
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -106,7 +106,7 @@ private fun SelinuxToggleSectionMaterial(
     SegmentedColumn(
         modifier = Modifier.padding(top = 12.dp),
         content = listOf({
-            val statusLabel = getSELinuxStatus()
+            val statusLabel = getSELinuxStatusRaw()
             SegmentedListItem(
                 headlineContent = { Text(stringResource(R.string.tools_selinux_toggle)) },
                 supportingContent = { Text(stringResource(R.string.tools_selinux_summary, statusLabel)) },
