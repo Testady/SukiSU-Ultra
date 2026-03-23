@@ -337,6 +337,7 @@ pub fn umount_list_del(path: &str) -> anyhow::Result<()> {
 /// Set current process's process group to init_group (pgid = 0)
 pub fn set_init_pgrp() -> std::io::Result<()> {
     ksuctl(KSU_IOCTL_SET_INIT_PGRP, std::ptr::null_mut::<u8>())?;
+    Ok(())
 }
 
 const KSU_IOCTL_LIST_TRY_UMOUNT: i32 = _IOWR::<()>(K, 200);
