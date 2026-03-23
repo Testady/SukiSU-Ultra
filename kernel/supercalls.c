@@ -11,6 +11,7 @@
 #include <linux/task_work.h>
 #include <linux/uaccess.h>
 #include <linux/version.h>
+#include <linux/pid.h>
 
 #include "supercalls.h"
 #include "arch.h"
@@ -628,6 +629,26 @@ static int add_try_umount(void __user *arg)
     return 0;
 }
 
+static int do_set_init_pgrp(void __user *arg)
+{
+    int err;
+    write_lock_irq(&tasklist_lock);
+    struct task_struct *p = current->group_leader;
+    struct pid *init_group = task_pgrp(&init_task);
+
+    err = -EPERM;
+    if (task_session(p) != task_session(&init_task))
+        goto out;
+
+    err = 0;
+    if (task_pgrp(p) != init_group)
+        change_pid(p, PIDTYPE_PGID, init_group);
+
+out:
+    write_unlock_irq(&tasklist_lock);
+    return err;
+}
+
 static int list_try_umount(void __user *arg)
 {
     struct ksu_list_try_umount_cmd cmd;
@@ -879,6 +900,10 @@ static const struct ksu_ioctl_cmd_map ksu_ioctl_handlers[] = {
       .name = "ADD_TRY_UMOUNT",
       .handler = add_try_umount,
       .perm_check = manager_or_root },
+    { .cmd = KSU_IOCTL_SET_INIT_PGRP,
+      .name = "SET_INIT_PGRP",
+      .handler = do_set_init_pgrp,
+      .perm_check = only_root },
     { .cmd = KSU_IOCTL_GET_FULL_VERSION,
       .name = "GET_FULL_VERSION",
       .handler = do_get_full_version,
