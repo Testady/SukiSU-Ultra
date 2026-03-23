@@ -5,6 +5,7 @@ import com.materialkolor.PaletteStyle
 import com.materialkolor.dynamiccolor.ColorSpec
 import com.sukisu.ultra.ui.UiMode
 
+@Immutable
 data class SettingsUiState(
     val uiMode: String = UiMode.DEFAULT_VALUE,
     val checkUpdate: Boolean = true,

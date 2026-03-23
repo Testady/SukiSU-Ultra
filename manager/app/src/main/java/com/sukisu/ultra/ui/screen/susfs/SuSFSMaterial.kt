@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.add
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.systemBars
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sukisu.ultra.R
 import com.sukisu.ultra.ui.navigation3.LocalNavigator
 import kotlinx.coroutines.launch
@@ -46,7 +47,7 @@ fun SuSFSMaterial() {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
 
     val viewModel: SuSFSViewModel = viewModel()
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val coroutineScope = rememberCoroutineScope()
 
     var isNavigating by remember { mutableStateOf(false) }

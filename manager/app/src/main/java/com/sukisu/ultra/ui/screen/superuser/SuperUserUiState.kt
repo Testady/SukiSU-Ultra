@@ -1,6 +1,7 @@
 package com.sukisu.ultra.ui.screen.superuser
 
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.Stable
 import com.sukisu.ultra.data.model.AppInfo
 import com.sukisu.ultra.ui.component.SearchStatus
 
@@ -16,6 +17,7 @@ data class GroupedApps(
     val matchedPackageNames: Set<String> = emptySet(),
 )
 
+@Stable
 data class SuperUserUiState(
     val isRefreshing: Boolean = false,
     val groupedApps: List<GroupedApps> = emptyList(),

@@ -29,7 +29,7 @@ import com.sukisu.ultra.R
 import com.sukisu.ultra.ui.component.KsuIsValid
 import com.sukisu.ultra.ui.theme.LocalEnableBlur
 import com.sukisu.ultra.ui.util.defaultHazeEffect
-import com.sukisu.ultra.ui.util.getSELinuxStatus
+import com.sukisu.ultra.ui.util.getSELinuxStatusRaw
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
@@ -153,7 +153,7 @@ private fun SelinuxToggleSectionMiuix(
             .padding(top = 12.dp)
             .fillMaxWidth(),
     ) {
-        val statusLabel = getSELinuxStatus()
+        val statusLabel = getSELinuxStatusRaw()
         SuperSwitch(
             title = stringResource(R.string.tools_selinux_toggle),
             summary = stringResource(R.string.tools_selinux_summary, statusLabel),

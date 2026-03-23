@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.edit
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sukisu.ultra.R
 import com.sukisu.ultra.ui.component.miuix.SearchBox
 import com.sukisu.ultra.ui.component.miuix.SearchPager
@@ -63,7 +64,7 @@ fun KpmMiuix(
     actions: KpmActions,
     bottomInnerPadding: Dp = 0.dp
 ) {
-    val state by viewModel.uiState.collectAsState()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
 
     val enableBlur = LocalEnableBlur.current

@@ -22,7 +22,7 @@ import com.sukisu.ultra.ui.screen.home.getManagerVersion
 import com.sukisu.ultra.ui.util.checkNewVersion
 import com.sukisu.ultra.ui.util.getModuleCount
 import com.sukisu.ultra.ui.util.getSuperuserCount
-import com.sukisu.ultra.ui.util.isSELinuxPermissive
+import com.sukisu.ultra.ui.util.getSELinuxStatusRaw
 import com.sukisu.ultra.ui.util.module.LatestVersionInfo
 import com.sukisu.ultra.ui.util.rootAvailable
 
@@ -34,17 +34,13 @@ class HomeViewModel : ViewModel() {
     fun refresh() {
         viewModelScope.launch {
             val baseState = withContext(Dispatchers.IO) { buildState() }
-            _uiState.update { current ->
-                baseState.copy(systemInfo = current.systemInfo)
-            }
+            _uiState.update { baseState }
             if (baseState.checkUpdateEnabled) {
                 val latestVersionInfo = withContext(Dispatchers.IO) { checkNewVersion() }
                 _uiState.update { it.copy(latestVersionInfo = latestVersionInfo) }
             }
         }
     }
-
-    fun updateSystemInfo(info: SystemInfo) = _uiState.update { it.copy(systemInfo = info) }
 
     private fun buildState(): HomeUiState {
         val kernelVersion = getKernelVersion()
@@ -65,7 +61,6 @@ class HomeViewModel : ViewModel() {
             isRootAvailable = isRootAvailable,
             isSafeMode = Natives.isSafeMode,
             isLateLoadMode = Natives.isLateLoadMode,
-            isSELinuxPermissive = isSELinuxPermissive(),
             checkUpdateEnabled = ksuApp.getSharedPreferences("settings", Context.MODE_PRIVATE)
                 .getBoolean("check_update", true),
             latestVersionInfo = LatestVersionInfo(),
@@ -76,7 +71,7 @@ class HomeViewModel : ViewModel() {
                 kernelVersion = Os.uname().release,
                 managerVersion = "${managerVersion.versionName} (${managerVersion.versionCode})",
                 fingerprint = Build.FINGERPRINT,
-                selinuxStatus = "Unknown",
+                selinuxStatus = getSELinuxStatusRaw(),
             ),
         )
     }
