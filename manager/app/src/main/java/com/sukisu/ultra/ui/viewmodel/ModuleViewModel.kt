@@ -6,6 +6,7 @@ import androidx.core.content.edit
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -17,6 +18,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import com.sukisu.ultra.Natives
 import com.sukisu.ultra.R
 import com.sukisu.ultra.data.model.Module
@@ -32,12 +34,12 @@ import com.sukisu.ultra.ui.screen.module.ModuleUiState
 import com.sukisu.ultra.ui.util.hasMagisk
 import com.sukisu.ultra.ui.util.module.fetchModuleDetail
 import com.sukisu.ultra.ui.util.module.fetchReleaseDescriptionHtml
-import com.sukisu.ultra.ui.util.toggleModule as toggleModuleUtil
-import com.sukisu.ultra.ui.util.uninstallModule as uninstallModuleUtil
-import com.sukisu.ultra.ui.util.undoUninstallModule as undoUninstallModuleUtil
 import okhttp3.Request
 import java.text.Collator
 import java.util.Locale
+import com.sukisu.ultra.ui.util.toggleModule as toggleModuleUtil
+import com.sukisu.ultra.ui.util.undoUninstallModule as undoUninstallModuleUtil
+import com.sukisu.ultra.ui.util.uninstallModule as uninstallModuleUtil
 
 class ModuleViewModel(
     private val repo: ModuleRepository = ModuleRepositoryImpl()
@@ -67,6 +69,8 @@ class ModuleViewModel(
     private var updateInfoCache: MutableMap<String, ModuleUpdateCache> = mutableMapOf()
     private val updateInfoInFlight = mutableSetOf<String>()
     private val searchQuery = MutableStateFlow("")
+
+    private var fetchJob: Job? = null
 
     var isNeedRefresh = false
         private set
@@ -237,18 +241,20 @@ class ModuleViewModel(
     }
 
     fun fetchModuleList(checkUpdate: Boolean = false) {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isRefreshing = true) }
+        fetchJob?.cancel()
+        _uiState.update { it.copy(isRefreshing = true) }
+        fetchJob = viewModelScope.launch {
+            try {
+                val start = SystemClock.elapsedRealtime()
 
-            val start = SystemClock.elapsedRealtime()
+                loadModuleList()
 
-            loadModuleList()
+                if (checkUpdate) syncModuleUpdateInfo(_uiState.value.modules)
 
-            if (checkUpdate) syncModuleUpdateInfo(_uiState.value.modules)
-
-            _uiState.update { it.copy(isRefreshing = false) }
-
-            Log.i(TAG, "load cost: ${SystemClock.elapsedRealtime() - start}, modules: ${_uiState.value.modules}")
+                Log.i(TAG, "load cost: ${SystemClock.elapsedRealtime() - start}, modules: ${_uiState.value.modules}")
+            } finally {
+                _uiState.update { it.copy(isRefreshing = false) }
+            }
         }
     }
 
@@ -287,8 +293,11 @@ class ModuleViewModel(
 
         val fetchedEntries = coroutineScope {
             modulesToFetch.map { (id, module, signature) ->
-                async(Dispatchers.IO) {
-                    id to ModuleUpdateCache(signature, checkUpdate(module))
+                async {
+                    val info = withTimeoutOrNull(5_000L) {
+                        withContext(Dispatchers.IO) { checkUpdate(module) }
+                    } ?: ModuleUpdateInfo.Empty
+                    id to ModuleUpdateCache(signature, info)
                 }
             }.awaitAll()
         }

@@ -1,21 +1,20 @@
 package com.sukisu.ultra.ui.screen.module
 
+import android.Manifest
 import android.content.Intent
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.unit.Dp
 import androidx.core.net.toUri
+import androidx.lifecycle.compose.LifecycleResumeEffect
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import com.sukisu.ultra.R
 import com.sukisu.ultra.ui.LocalUiMode
 import com.sukisu.ultra.ui.UiMode
@@ -36,19 +35,27 @@ fun ModulePager(
     val resource = LocalResources.current
     val viewModel = viewModel<ModuleViewModel>()
     val rawUiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val scope = rememberCoroutineScope()
 
     val webUILauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { viewModel.fetchModuleList() }
 
+    // Request notification permission for download progress notifications
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { /* Download works regardless of result */ }
+
     LaunchedEffect(Unit) {
         viewModel.refreshEnvironmentState()
         viewModel.initializePreferences()
-
-        if (rawUiState.moduleList.isEmpty() || viewModel.isNeedRefresh) {
-            viewModel.fetchModuleList(checkUpdate = true)
+        if (Build.VERSION.SDK_INT >= 33) {
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
+    }
+
+    LifecycleResumeEffect(Unit) {
+        viewModel.fetchModuleList(checkUpdate = rawUiState.moduleList.isEmpty() || viewModel.isNeedRefresh)
+        onPauseOrDispose {}
     }
 
     val actions = ModuleActions(
@@ -77,22 +84,22 @@ fun ModulePager(
             viewModel.consumeEffect()
         },
         onConfirmUpdate = { request ->
-            scope.launch {
-                withContext(Dispatchers.IO) {
-                    download(
-                        url = request.downloadUrl,
-                        fileName = request.fileName,
-                        onDownloaded = { uri ->
-                            navigator.push(Route.Flash(FlashIt.FlashModules(listOf(uri))))
-                            viewModel.markNeedRefresh()
-                        },
-                        onDownloading = {
-                            viewModel.emitEffect(ModuleEffect.Toast(resource.getString(R.string.module_downloading).format(request.module.name)))
-                        },
+            download(
+                url = request.downloadUrl,
+                fileName = request.fileName,
+                onDownloaded = { uri ->
+                    navigator.push(Route.Flash(FlashIt.FlashModules(listOf(uri))))
+                    viewModel.markNeedRefresh()
+                },
+                onDownloading = {
+                    viewModel.emitEffect(
+                        ModuleEffect.Toast(
+                            resource.getString(R.string.module_downloading).format(request.module.name)
+                        )
                     )
-                }
-                viewModel.dismissConfirmRequest()
-            }
+                },
+            )
+            viewModel.dismissConfirmRequest()
         },
         onOpenRepo = { navigator.push(Route.ModuleRepo) },
         onToggleSortActionFirst = {
