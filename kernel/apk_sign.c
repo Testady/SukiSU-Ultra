@@ -44,8 +44,7 @@ static struct sdesc *init_sdesc(struct crypto_shash *alg)
     return sdesc;
 }
 
-static int calc_hash(struct crypto_shash *alg, const unsigned char *data,
-                     unsigned int datalen, unsigned char *digest)
+static int calc_hash(struct crypto_shash *alg, const unsigned char *data, unsigned int datalen, unsigned char *digest)
 {
     struct sdesc *sdesc;
     int ret;
@@ -61,8 +60,7 @@ static int calc_hash(struct crypto_shash *alg, const unsigned char *data,
     return ret;
 }
 
-static int ksu_sha256(const unsigned char *data, unsigned int datalen,
-                      unsigned char *digest)
+static int ksu_sha256(const unsigned char *data, unsigned int datalen, unsigned char *digest)
 {
     struct crypto_shash *alg;
     char *hash_alg_name = "sha256";
@@ -152,8 +150,7 @@ static bool has_v1_signature_file(struct file *fp)
 
     loff_t pos = 0;
 
-    while (kernel_read(fp, &header, sizeof(struct zip_entry_header), &pos) ==
-           sizeof(struct zip_entry_header)) {
+    while (kernel_read(fp, &header, sizeof(struct zip_entry_header), &pos) == sizeof(struct zip_entry_header)) {
         if (header.signature != 0x04034b50) {
             // ZIP magic: 'PK'
             return false;
@@ -313,8 +310,7 @@ static struct kernel_param_ops expected_size_ops = {
     .get = param_get_uint,
 };
 
-module_param_cb(ksu_debug_manager_appid, &expected_size_ops,
-                &ksu_debug_manager_appid, S_IRUSR | S_IWUSR);
+module_param_cb(ksu_debug_manager_appid, &expected_size_ops, &ksu_debug_manager_appid, S_IRUSR | S_IWUSR);
 
 #endif
 
