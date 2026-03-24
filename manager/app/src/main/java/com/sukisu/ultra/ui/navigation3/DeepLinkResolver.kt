@@ -12,8 +12,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.net.toUri
-import me.weishu.kernelsu.ui.screen.flash.FlashIt
-import me.weishu.kernelsu.ui.util.DownloadService
+import com.sukisu.ultra.ui.screen.flash.FlashIt
+import com.sukisu.ultra.ui.util.DownloadService
 
 /**
  * Deep link resolution: maps external Intent/Uri to an initial back stack.
