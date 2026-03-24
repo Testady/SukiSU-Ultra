@@ -24,8 +24,7 @@
 
 #ifdef CONFIG_KRETPROBES
 
-static struct kretprobe *init_kretprobe(const char *name,
-                                        kretprobe_handler_t handler)
+static struct kretprobe *init_kretprobe(const char *name, kretprobe_handler_t handler)
 {
     struct kretprobe *rp = kzalloc(sizeof(struct kretprobe), GFP_KERNEL);
     if (!rp)
@@ -56,8 +55,7 @@ static void destroy_kretprobe(struct kretprobe **rp_ptr)
     *rp_ptr = NULL;
 }
 
-static int syscall_regfunc_handler(struct kretprobe_instance *ri,
-                                   struct pt_regs *regs)
+static int syscall_regfunc_handler(struct kretprobe_instance *ri, struct pt_regs *regs)
 {
     unsigned long flags;
     ksu_tp_marker_lock(&flags);
@@ -73,8 +71,7 @@ static int syscall_regfunc_handler(struct kretprobe_instance *ri,
     return 0;
 }
 
-static int syscall_unregfunc_handler(struct kretprobe_instance *ri,
-                                     struct pt_regs *regs)
+static int syscall_unregfunc_handler(struct kretprobe_instance *ri, struct pt_regs *regs)
 {
     unsigned long flags;
     ksu_tp_marker_lock(&flags);
@@ -117,11 +114,9 @@ int ksu_handle_init_mark_tracker(const char __user **filename_user)
     path[sizeof(path) - 1] = '\0';
 
     if (unlikely(strcmp(path, KSUD_PATH) == 0)) {
-        pr_info("hook_manager: escape to root for init executing ksud: %d\n",
-                current->pid);
+        pr_info("hook_manager: escape to root for init executing ksud: %d\n", current->pid);
         escape_to_root_for_init();
-    } else if (likely(strstr(path, "/app_process") == NULL &&
-                      strstr(path, "/adbd") == NULL)) {
+    } else if (likely(strstr(path, "/app_process") == NULL && strstr(path, "/adbd") == NULL)) {
         pr_info("hook_manager: unmark %d exec %s\n", current->pid, path);
         ksu_clear_task_tracepoint_flag_if_needed(current);
     }
@@ -144,8 +139,7 @@ static long __nocfi ksu_hook_newfstatat(int orig_nr, const struct pt_regs *regs)
         return ksu_syscall_table[orig_nr](regs);
 
     int *dfd = (int *)&PT_REGS_PARM1(regs);
-    const char __user **filename_user =
-        (const char __user **)&PT_REGS_PARM2(regs);
+    const char __user **filename_user = (const char __user **)&PT_REGS_PARM2(regs);
     int *flags = (int *)&PT_REGS_SYSCALL_PARM4(regs);
     ksu_handle_stat(dfd, filename_user, flags);
 
@@ -158,8 +152,7 @@ static long __nocfi ksu_hook_faccessat(int orig_nr, const struct pt_regs *regs)
         return ksu_syscall_table[orig_nr](regs);
 
     int *dfd = (int *)&PT_REGS_PARM1(regs);
-    const char __user **filename_user =
-        (const char __user **)&PT_REGS_PARM2(regs);
+    const char __user **filename_user = (const char __user **)&PT_REGS_PARM2(regs);
     int *mode = (int *)&PT_REGS_PARM3(regs);
     ksu_handle_faccessat(dfd, filename_user, mode, NULL);
 
@@ -170,8 +163,7 @@ static long __nocfi ksu_hook_execve(int orig_nr, const struct pt_regs *regs)
 {
     int ret = 0;
 
-    const char __user **filename_user =
-        (const char __user **)&PT_REGS_PARM1(regs);
+    const char __user **filename_user = (const char __user **)&PT_REGS_PARM1(regs);
     const struct cred *cred = get_current_cred();
     bool current_is_init = is_init(cred);
     put_cred(cred);
@@ -205,7 +197,11 @@ static long __nocfi ksu_hook_setresuid(int orig_nr, const struct pt_regs *regs)
 // sys_enter handler: redirect hooked syscalls to the dispatcher
 static void ksu_sys_enter_handler(void *data, struct pt_regs *regs, long id)
 {
+#if defined(__x86_64__)
+    if (unlikely(in_compat_syscall()))
+#elif defined(__aarch64__)
     if (unlikely(is_compat_task()))
+#endif
         return;
 
     if (ksu_dispatcher_nr < 0)
@@ -213,8 +209,16 @@ static void ksu_sys_enter_handler(void *data, struct pt_regs *regs, long id)
 
     if (ksu_has_syscall_hook(id)) {
         struct pt_regs *current_regs = task_pt_regs(current);
+
+#if defined(__x86_64__)
+        // Stash the original syscall number in ax.
+        // We use ax because it currently just holds -ENOSYS and is safe to overwrite.
+        current_regs->ax = id;
+        current_regs->orig_ax = ksu_dispatcher_nr;
+#elif defined(__aarch64__)
         PT_REGS_ORIG_SYSCALL(current_regs) = id;
         current_regs->syscallno = ksu_dispatcher_nr;
+#endif
     }
 }
 #endif
@@ -225,10 +229,8 @@ void ksu_syscall_hook_manager_init(void)
     pr_info("hook_manager: ksu_hook_manager_init called\n");
 
 #ifdef CONFIG_KRETPROBES
-    syscall_regfunc_rp =
-        init_kretprobe("syscall_regfunc", syscall_regfunc_handler);
-    syscall_unregfunc_rp =
-        init_kretprobe("syscall_unregfunc", syscall_unregfunc_handler);
+    syscall_regfunc_rp = init_kretprobe("syscall_regfunc", syscall_regfunc_handler);
+    syscall_unregfunc_rp = init_kretprobe("syscall_unregfunc", syscall_unregfunc_handler);
 #endif
 
     // Register syscall hooks via dispatcher
@@ -247,8 +249,7 @@ void ksu_syscall_hook_manager_init(void)
     ksu_mark_running_process_locked();
 #endif
     if (ret) {
-        pr_err("hook_manager: failed to register sys_enter tracepoint: %d\n",
-               ret);
+        pr_err("hook_manager: failed to register sys_enter tracepoint: %d\n", ret);
     } else {
         pr_info("hook_manager: sys_enter tracepoint registered\n");
     }
