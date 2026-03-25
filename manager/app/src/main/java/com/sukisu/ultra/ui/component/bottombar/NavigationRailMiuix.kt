@@ -11,9 +11,9 @@ import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import com.sukisu.ultra.Natives
-import com.sukisu.ultra.ui.util.defaultHazeEffect
 import com.sukisu.ultra.ui.LocalMainPagerState
 import com.sukisu.ultra.ui.theme.LocalEnableBlur
+import com.sukisu.ultra.ui.util.defaultHazeEffect
 import com.sukisu.ultra.ui.util.rootAvailable
 import top.yukonga.miuix.kmp.basic.NavigationRail
 import top.yukonga.miuix.kmp.basic.NavigationRailItem
