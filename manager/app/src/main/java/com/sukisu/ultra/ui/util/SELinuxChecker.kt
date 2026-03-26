@@ -1,9 +1,6 @@
 package com.sukisu.ultra.ui.util
 
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.res.stringResource
 import com.topjohnwu.superuser.Shell
-import com.sukisu.ultra.R
 
 fun isSELinuxPermissive(): Boolean {
     val shell = Shell.Builder.create().build("sh")
