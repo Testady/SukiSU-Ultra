@@ -7,6 +7,7 @@
 #include <generated/compile.h>
 #include <linux/version.h> /* LINUX_VERSION_CODE, KERNEL_VERSION macros */
 #include <linux/sched.h>
+#include <linux/moduleparam.h>
 
 #ifdef CONFIG_KSU_SUSFS
 #include <linux/susfs.h>
@@ -82,6 +83,13 @@ void sukisu_custom_config_exit(void)
 struct cred *ksu_cred;
 bool ksu_late_loaded;
 
+#ifdef CONFIG_KSU_DEBUG
+bool allow_shell = true;
+#else
+bool allow_shell = false;
+#endif
+module_param(allow_shell, bool, 0);
+
 int __init kernelsu_init(void)
 {
 #ifdef MODULE
@@ -111,6 +119,9 @@ int __init kernelsu_init(void)
 	pr_alert(
 		"*************************************************************");
 #endif
+	if (allow_shell) {
+		pr_alert("shell is allowed at init!");
+	}
 
 	ksu_cred = prepare_creds();
 	if (!ksu_cred) {
